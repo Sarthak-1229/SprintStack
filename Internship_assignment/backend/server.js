@@ -186,9 +186,6 @@ io.on("connection", async (socket) => {
 
   // Handle task deletion
   socket.on("task:delete", async (taskId) => {
-    if (socket.user.username !== "sarthak") {
-      return socket.emit("error", "Unauthorized: Only admin can delete tasks");
-    }
     try {
       await Task.findByIdAndDelete(taskId);
       io.emit("task:deleted", taskId);

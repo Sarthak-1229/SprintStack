@@ -13,12 +13,5 @@ export default defineConfig({
     strictPort: true,
     open: true,
   },
-  test: {
-    mockReset: true,
-    globals: true,
-    environment: "jsdom",
-    setupFiles: "./src/setupTests.js",
-    exclude: ["node_modules", "src/tests/e2e"],
-  },
   plugins: [react()],
 });

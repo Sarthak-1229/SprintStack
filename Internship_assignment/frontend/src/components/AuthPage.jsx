@@ -28,7 +28,7 @@ function AuthPage() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">Vyorius <span>Drones</span></h1>
+        <h1 className="auth-title">SprintStack</h1>
         <h2 className="auth-subtitle">{isLogin ? 'System Login' : 'Create Operator Account'}</h2>
         
         {error && <div className="auth-error">{error}</div>}

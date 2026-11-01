@@ -55,7 +55,7 @@ function TaskCard({ task, index, onEdit, onView }) {
               >
                 ✏️
               </button>
-              {user?.username === 'sarthak' && (
+              {user && (
                 <button
                   className="task-action-btn delete"
                   id={`delete-task-${task.id}`}
