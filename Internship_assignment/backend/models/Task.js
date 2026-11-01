@@ -26,10 +26,6 @@ const taskSchema = new mongoose.Schema(
       enum: ["Feature", "Bug", "Design", "Research", "Enhancement"],
       default: "Feature",
     },
-    attachment: {
-      type: mongoose.Schema.Types.Mixed,
-      default: null,
-    },
     dueDate: {
       type: Date,
       default: null,
