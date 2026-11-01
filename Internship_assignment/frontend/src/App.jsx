@@ -6,7 +6,11 @@ import AuthPage from "./components/AuthPage";
 
 function AppContent() {
   const { user } = useAuth();
-  if (!user) return <AuthPage />;
+  
+  if (!user) {
+    return <AuthPage />;
+  }
+
   return (
     <TaskProvider>
       <TaskBoard />

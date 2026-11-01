@@ -1,31 +1,55 @@
-import React from "react";
-import TaskCard from "./TaskCard";
+import React from 'react';
+import { Droppable } from '@hello-pangea/dnd';
+import TaskCard from './TaskCard';
 
-function Column({ col, tasks, onAddTask, onEditTask }) {
+function Column({ col, tasks, onAddTask, onEditTask, onViewTask }) {
   return (
-    <div className="card shadow-sm h-100">
-      <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-        <span className="fw-bold">
-          {col.label}{" "}
-          <span className="badge bg-light text-dark ms-2">{tasks.length}</span>
-        </span>
+    <div className={`column-container ${col.cssClass}`}>
+      <div className="column-header">
+        <div className="column-header-left">
+          <span className="column-dot" />
+          <h2 className="column-title">{col.label}</h2>
+          <span className="task-count">{tasks.length}</span>
+        </div>
         <button
-          className="btn btn-sm btn-outline-light"
+          className="add-task-btn"
+          id={`add-task-btn-${col.id.replace(/\s+/g, '-').toLowerCase()}`}
           onClick={onAddTask}
           title={`Add task to ${col.label}`}
+          aria-label={`Add task to ${col.label}`}
         >
           +
         </button>
       </div>
-      <div className="card-body" style={{ minHeight: "200px" }}>
-        {tasks.length === 0 ? (
-          <p className="text-muted text-center mt-4">No tasks</p>
-        ) : (
-          tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={onEditTask} />
-          ))
+
+      <Droppable droppableId={col.id}>
+        {(provided, snapshot) => (
+          <div
+            className={`column-content ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+          >
+            {tasks.length === 0 && !snapshot.isDraggingOver && (
+              <div className="column-empty">
+                <span className="column-empty-icon">{col.emptyIcon}</span>
+                <span>{col.emptyText}</span>
+              </div>
+            )}
+
+            {tasks.map((task, index) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                index={index}
+                onEdit={onEditTask}
+                onView={() => onViewTask(task)}
+              />
+            ))}
+
+            {provided.placeholder}
+          </div>
         )}
-      </div>
+      </Droppable>
     </div>
   );
 }

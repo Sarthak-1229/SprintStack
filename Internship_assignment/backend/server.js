@@ -8,6 +8,8 @@ try {
 }
 
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -22,40 +24,22 @@ app.use(cors({
 }));
 app.use(express.json());
 
+const server = http.createServer(app);
+const io = new Server(server, { 
+  cors: { 
+    origin: process.env.FRONTEND_URL || "*" 
+  } 
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_key";
 
-// ─── Validation Helpers ─────────────────────────────────────────────────────
-
-const VALID_STATUSES = ["To Do", "In Progress", "Done"];
-const VALID_PRIORITIES = ["Low", "Medium", "High"];
-
-function isValidObjectId(id) {
-  return mongoose.Types.ObjectId.isValid(id);
-}
-
-// ─── Auth Routes ────────────────────────────────────────────────────────────
-
+// Auth Routes
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "Username, email, and password are required" });
-    }
-    if (username.trim().length < 3) {
-      return res.status(400).json({ message: "Username must be at least 3 characters" });
-    }
-    if (!email.includes("@")) {
-      return res.status(400).json({ message: "Email must be a valid email address" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-
+    if (!username || !email || !password) return res.status(400).json({ message: "Username, email, and password required" });
     const existing = await User.findOne({ $or: [{ username }, { email }] });
-    if (existing) {
-      return res.status(400).json({ message: "Username or email already exists" });
-    }
+    if (existing) return res.status(400).json({ message: "Username or email already exists" });
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, email, password: hashedPassword });
     await user.save();
@@ -69,22 +53,11 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { identifier, password } = req.body;
-
-    if (!identifier || !identifier.trim()) {
-      return res.status(400).json({ message: "Identifier is required" });
-    }
-    if (!password) {
-      return res.status(400).json({ message: "Password is required" });
-    }
-
+    if (!identifier || !password) return res.status(400).json({ message: "Identifier and password required" });
     const user = await User.findOne({ $or: [{ username: identifier }, { email: identifier }] });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
     const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: "7d" });
     res.json({ token, username: user.username });
   } catch (error) {
@@ -92,109 +65,16 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ─── Task REST Routes ────────────────────────────────────────────────────────
-
-// GET /api/tasks — list all tasks
-app.get("/api/tasks", async (req, res) => {
+app.get("/api/users", async (req, res) => {
   try {
-    const tasks = await Task.find({});
-    res.json(tasks.map(t => t.toObject()));
+    const users = await User.find({}, 'username email');
+    res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// POST /api/tasks — create a task
-app.post("/api/tasks", async (req, res) => {
-  try {
-    const { title, description, status, priority, category, assignee, dueDate } = req.body;
-
-    if (!title || !title.trim()) {
-      return res.status(400).json({ message: "Task title is required" });
-    }
-    if (status !== undefined && !VALID_STATUSES.includes(status)) {
-      return res.status(400).json({ message: "Status must be one of: To Do, In Progress, Done" });
-    }
-    if (priority !== undefined && !VALID_PRIORITIES.includes(priority)) {
-      return res.status(400).json({ message: "Priority must be one of: Low, Medium, High" });
-    }
-
-    const newTask = new Task({
-      title: title.trim(),
-      description: description || "",
-      status: status || "To Do",
-      priority: priority || "Low",
-      category: category || "Feature",
-      assignee: assignee || null,
-      dueDate: dueDate || null,
-    });
-    await newTask.save();
-    res.status(201).json(newTask.toObject());
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// PUT /api/tasks/:id — update a task
-app.put("/api/tasks/:id", async (req, res) => {
-  try {
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: "Invalid task ID format" });
-    }
-
-    const { title, description, status, priority, category, assignee, dueDate } = req.body;
-
-    if (title !== undefined && !title.trim()) {
-      return res.status(400).json({ message: "Task title cannot be empty" });
-    }
-    if (status !== undefined && !VALID_STATUSES.includes(status)) {
-      return res.status(400).json({ message: "Status must be one of: To Do, In Progress, Done" });
-    }
-    if (priority !== undefined && !VALID_PRIORITIES.includes(priority)) {
-      return res.status(400).json({ message: "Priority must be one of: Low, Medium, High" });
-    }
-
-    const updated = await Task.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...(title !== undefined && { title: title.trim() }),
-        ...(description !== undefined && { description }),
-        ...(status !== undefined && { status }),
-        ...(priority !== undefined && { priority }),
-        ...(category !== undefined && { category }),
-        ...(assignee !== undefined && { assignee }),
-        ...(dueDate !== undefined && { dueDate }),
-      },
-      { new: true }
-    );
-    if (!updated) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-    res.json(updated.toObject());
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// DELETE /api/tasks/:id — delete a task
-app.delete("/api/tasks/:id", async (req, res) => {
-  try {
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: "Invalid task ID format" });
-    }
-
-    const deleted = await Task.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-    res.json({ message: "Task deleted" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ─── Admin Seeder ───────────────────────────────────────────────────────────
-
+// Admin Seeder
 const seedAdmin = async () => {
   try {
     const admin = await User.findOne({ username: "sarthak" });
@@ -212,8 +92,7 @@ const seedAdmin = async () => {
   }
 };
 
-// ─── MongoDB Connection & Server Start ──────────────────────────────────────
-
+// Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/kanban_board";
 mongoose.connect(MONGODB_URI, { dbName: 'kanban' })
   .then(() => {
@@ -222,5 +101,104 @@ mongoose.connect(MONGODB_URI, { dbName: 'kanban' })
   })
   .catch((err) => console.error("MongoDB connection error:", err));
 
+// Socket Auth Middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error("Authentication error"));
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return next(new Error("Authentication error"));
+    socket.user = decoded;
+    next();
+  });
+});
+
+io.on("connection", async (socket) => {
+  console.log("A user connected:", socket.id, "Username:", socket.user.username);
+
+  // Send initial tasks to the newly connected client
+  try {
+    const tasks = await Task.find({});
+    const taskList = tasks.map(t => t.toObject());
+    socket.emit("sync:tasks", taskList);
+  } catch (error) {
+    console.error("Error fetching tasks for sync:", error);
+  }
+
+  // Handle task creation
+  socket.on("task:create", async (taskData) => {
+    try {
+      const newTaskDoc = new Task({
+        title: taskData.title || "New Task",
+        description: taskData.description || "",
+        status: taskData.status || "To Do",
+        priority: taskData.priority || "Low",
+        category: taskData.category || "Feature",
+        attachment: taskData.attachment || null,
+        dueDate: taskData.dueDate || null,
+        assignee: taskData.assignee || null
+      });
+      await newTaskDoc.save();
+      io.emit("task:created", newTaskDoc.toObject()); 
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
+  });
+
+  // Handle task update
+  socket.on("task:update", async (updatedTask) => {
+    try {
+      const updatedDoc = await Task.findByIdAndUpdate(
+        updatedTask.id,
+        {
+          title: updatedTask.title,
+          description: updatedTask.description,
+          priority: updatedTask.priority,
+          category: updatedTask.category,
+          attachment: updatedTask.attachment,
+          dueDate: updatedTask.dueDate,
+          assignee: updatedTask.assignee
+        },
+        { new: true }
+      );
+      if (updatedDoc) {
+        io.emit("task:updated", updatedDoc.toObject());
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
+  });
+
+  // Handle task movement between columns
+  socket.on("task:move", async ({ id, status }) => {
+    try {
+      const updatedDoc = await Task.findByIdAndUpdate(
+        id,
+        { status },
+        { new: true }
+      );
+      if (updatedDoc) {
+        io.emit("task:moved", updatedDoc.toObject());
+      }
+    } catch (error) {
+      console.error("Error moving task:", error);
+    }
+  });
+
+  // Handle task deletion
+  socket.on("task:delete", async (taskId) => {
+    try {
+      await Task.findByIdAndDelete(taskId);
+      io.emit("task:deleted", taskId);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
