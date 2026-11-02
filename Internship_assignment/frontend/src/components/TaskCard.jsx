@@ -55,7 +55,7 @@ function TaskCard({ task, index, onEdit, onView }) {
               >
                 ✏️
               </button>
-              {user && (
+              {user?.username === 'sarthak' && (
                 <button
                   className="task-action-btn delete"
                   id={`delete-task-${task.id}`}
@@ -63,7 +63,7 @@ function TaskCard({ task, index, onEdit, onView }) {
                     e.stopPropagation();
                     deleteTask(task.id);
                   }}
-                  title="Delete task"
+                  title="Delete task (Admin only)"
                   aria-label="Delete task"
                 >
                   🗑

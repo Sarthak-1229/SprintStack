@@ -77,6 +77,7 @@ function TaskBoard() {
   const [activeFilter, setActiveFilter] = useState('All');
 
   const connected = !!socket;
+  const myTasksCount = tasks.filter((t) => t.assignee === user?.username).length;
 
   const handleDragEnd = (result) => {
     const { destination, source, draggableId } = result;
@@ -130,7 +131,7 @@ function TaskBoard() {
             {connected ? 'Connected' : 'Connecting…'}
           </div>
           <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-color)', padding: '0.5rem 1rem', border: '2px solid var(--border-color)', fontWeight: 'bold' }}>
-            <span>👤 {user?.username}</span>
+            <span>👤 {user?.username} {user?.username === 'sarthak' ? '(Admin)' : ''}</span>
             <button 
               onClick={logout}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', fontWeight: 'bold', marginLeft: '0.5rem', borderLeft: '2px solid var(--border-color)', paddingLeft: '0.5rem' }}
@@ -159,14 +160,14 @@ function TaskBoard() {
           style={{ width: '300px', marginBottom: 0 }}
         />
         <div className="filter-chips" style={{ display: 'flex', gap: '0.5rem' }}>
-          {['All', 'High Priority', 'Overdue', 'Assigned to Me', 'Bugs'].map(f => (
+          {['All', 'Assigned to Me', 'High Priority', 'Overdue', 'Bugs'].map(f => (
             <button 
               key={f}
               className={`btn ${activeFilter === f ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setActiveFilter(f)}
               style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
             >
-              {f}
+              {f === 'Assigned to Me' ? `👤 Assigned to Me (${myTasksCount})` : f}
             </button>
           ))}
         </div>

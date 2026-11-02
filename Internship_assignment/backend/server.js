@@ -184,9 +184,13 @@ io.on("connection", async (socket) => {
     }
   });
 
-  // Handle task deletion
+  // Handle task deletion - only admin 'sarthak' can delete
   socket.on("task:delete", async (taskId) => {
     try {
+      if (socket.user?.username !== "sarthak") {
+        console.warn(`Unauthorized delete attempt by: ${socket.user?.username}`);
+        return socket.emit("error", "Unauthorized: Only admin (sarthak) can delete tasks.");
+      }
       await Task.findByIdAndDelete(taskId);
       io.emit("task:deleted", taskId);
     } catch (error) {
@@ -201,4 +205,3 @@ io.on("connection", async (socket) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-

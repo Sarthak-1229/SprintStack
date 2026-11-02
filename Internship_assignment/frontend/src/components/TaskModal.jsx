@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,6 +11,7 @@ function TaskModal({ onClose, editingTask, defaultColumn }) {
   const { createTask, updateTask } = useTaskContext();
   const { user } = useAuth();
 
+  const isAdmin = user?.username === 'sarthak';
   const [title, setTitle] = useState(editingTask?.title || '');
   const [description, setDescription] = useState(editingTask?.description || '');
   const [priority, setPriority] = useState(editingTask?.priority || 'Medium');
@@ -18,7 +19,8 @@ function TaskModal({ onClose, editingTask, defaultColumn }) {
   const [status, setStatus] = useState(editingTask?.status || defaultColumn || 'To Do');
   const [attachment, setAttachment] = useState(editingTask?.attachment || null);
   const [attachmentName, setAttachmentName] = useState(editingTask?.attachmentName || '');
-  const [assignee] = useState(editingTask?.assignee || user?.username || '');
+  const [assignee, setAssignee] = useState(editingTask?.assignee || (isAdmin ? '' : user?.username || ''));
+  const [usersList, setUsersList] = useState([]);
   const [dueDate, setDueDate] = useState(editingTask?.dueDate ? new Date(editingTask.dueDate).toISOString().split('T')[0] : '');
   
   const [fileError, setFileError] = useState('');
@@ -26,6 +28,18 @@ function TaskModal({ onClose, editingTask, defaultColumn }) {
   const fileInputRef = useRef(null);
 
   const isEditing = !!editingTask;
+
+  useEffect(() => {
+    if (isAdmin) {
+      const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, "");
+      fetch(`${BACKEND_URL}/api/users`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setUsersList(data);
+        })
+        .catch((err) => console.error("Error fetching users list:", err));
+    }
+  }, [isAdmin]);
 
   const handleFile = (file) => {
     setFileError('');
@@ -164,13 +178,29 @@ function TaskModal({ onClose, editingTask, defaultColumn }) {
           <div className="form-row" style={{ marginTop: '1rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" htmlFor="task-assignee">Assignee</label>
-              <div 
-                id="task-assignee" 
-                className="form-input" 
-                style={{ background: 'var(--bg-color)', color: 'var(--text-muted)', cursor: 'not-allowed' }}
-              >
-                {assignee || 'Unassigned'}
-              </div>
+              {isAdmin ? (
+                <select
+                  id="task-assignee"
+                  className="form-select"
+                  value={assignee}
+                  onChange={(e) => setAssignee(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {usersList.map((u) => (
+                    <option key={u._id || u.username} value={u.username}>
+                      {u.username} {u.email ? `(${u.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div 
+                  id="task-assignee" 
+                  className="form-input" 
+                  style={{ background: 'var(--bg-color)', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                >
+                  {assignee || 'Unassigned'}
+                </div>
+              )}
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" htmlFor="task-due-date">Due Date</label>
