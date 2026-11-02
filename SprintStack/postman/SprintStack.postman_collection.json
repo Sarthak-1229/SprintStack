@@ -1,0 +1,61 @@
+{
+  "info": {
+    "name": "SprintStack REST API",
+    "description": "Register/login, then use the saved token to manage tasks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "taskId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+    },
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"demo-user\",\n  \"email\": \"demo@example.com\",\n  \"password\": \"change-this-password\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/register"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code === 201) pm.collectionVariables.set('token', pm.response.json().token);"] } }]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"demo-user\",\n  \"password\": \"change-this-password\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/login"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code === 200) pm.collectionVariables.set('token', pm.response.json().token);"] } }]
+    },
+    {
+      "name": "List tasks",
+      "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/api/tasks" }
+    },
+    {
+      "name": "Create task",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"Prepare sprint plan\",\n  \"description\": \"Add the next sprint goals\",\n  \"status\": \"To Do\",\n  \"priority\": \"Medium\",\n  \"category\": \"Feature\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/tasks"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code === 201) pm.collectionVariables.set('taskId', pm.response.json().id);"] } }]
+    },
+    {
+      "name": "Move task to In Progress",
+      "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"In Progress\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/tasks/{{taskId}}/status" }
+    },
+    {
+      "name": "Delete task",
+      "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/api/tasks/{{taskId}}" }
+    }
+  ]
+}
