@@ -1,0 +1,442 @@
+.profile-container {
+  padding: 0 2rem 2.5rem 2rem;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* Hero Card */
+.profile-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem;
+  background: #ffffff;
+  border: 3.5px solid var(--accent-black, #1D1D1D);
+  box-shadow: 6px 6px 0 var(--accent-black, #1D1D1D);
+  margin-bottom: 2rem;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.profile-avatar-giant {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--accent-black, #1D1D1D);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  font-weight: 900;
+  border: 3px solid var(--accent-black, #1D1D1D);
+  box-shadow: 4px 4px 0 var(--accent-yellow, #F0D700);
+  flex-shrink: 0;
+}
+
+.profile-badge-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.profile-role-tag {
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 0.15rem 0.5rem;
+  border: 1.5px solid var(--accent-black, #1D1D1D);
+}
+
+.profile-role-tag.admin {
+  background: var(--accent-red, #E1251B);
+  color: #ffffff;
+}
+
+.profile-role-tag.member {
+  background: #e0f2fe;
+  color: var(--accent-blue, #0056A3);
+}
+
+.profile-type-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border: 1.5px solid var(--accent-black, #1D1D1D);
+  background: #fef08a;
+}
+
+.profile-name {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: var(--accent-black, #1D1D1D);
+  line-height: 1.1;
+}
+
+.profile-handle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted, #9ca3af);
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.profile-bio-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  margin-top: 0.5rem;
+  max-width: 600px;
+}
+
+.profile-edit-toggle-btn {
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-yellow, #F0D700);
+  border: 2.5px solid var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--accent-black, #1D1D1D);
+  transition: all 0.15s;
+}
+
+.profile-edit-toggle-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--accent-black, #1D1D1D);
+  background: #ffe600;
+}
+
+/* Alerts */
+.profile-alert {
+  padding: 0.75rem 1rem;
+  border: 2px solid;
+  font-weight: 800;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-alert.success {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #15803d;
+}
+
+.profile-alert.error {
+  background: #fee2e2;
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+
+/* Metrics Grid */
+.profile-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-box {
+  background: #ffffff;
+  border: 3px solid var(--accent-black, #1D1D1D);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.box-blue {
+  box-shadow: 4px 4px 0 var(--accent-blue, #0056A3);
+}
+
+.box-yellow {
+  box-shadow: 4px 4px 0 var(--accent-yellow, #F0D700);
+}
+
+.box-red {
+  box-shadow: 4px 4px 0 var(--accent-red, #E1251B);
+}
+
+.box-black {
+  box-shadow: 4px 4px 0 var(--accent-black, #1D1D1D);
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #4b5563);
+}
+
+.metric-number {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--accent-black, #1D1D1D);
+  line-height: 1.1;
+  margin: 0.25rem 0;
+}
+
+.metric-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Body Grid */
+.profile-body-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  .profile-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-details-card,
+.profile-security-card {
+  background: #ffffff;
+  border: 3.5px solid var(--accent-black, #1D1D1D);
+  box-shadow: 6px 6px 0 var(--accent-black, #1D1D1D);
+  padding: 1.75rem;
+}
+
+.section-heading {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--accent-black, #1D1D1D);
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+/* Details List */
+.details-view-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detail-key {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted, #9ca3af);
+}
+
+.detail-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-black, #1D1D1D);
+}
+
+.github-profile-link {
+  color: var(--accent-blue, #0056A3);
+  text-decoration: underline;
+  font-weight: 800;
+}
+
+/* Skills */
+.detail-skills-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.skills-badge-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-pill {
+  padding: 0.3rem 0.65rem;
+  background: #f3f4f6;
+  border: 2px solid var(--accent-black, #1D1D1D);
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 2px 2px 0 var(--accent-black, #1D1D1D);
+}
+
+.skill-pill.editable {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef08a;
+}
+
+.skill-remove-btn {
+  background: none;
+  border: none;
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+.add-skill-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.add-skill-btn {
+  padding: 0.5rem 1rem;
+  background: var(--accent-black, #1D1D1D);
+  color: #ffffff;
+  border: 2px solid var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Edit Form */
+.profile-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.track-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 2px solid var(--accent-black, #1D1D1D);
+  background: #f3f4f6;
+}
+
+.track-btn {
+  padding: 0.55rem;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.track-btn.active {
+  background: var(--accent-black, #1D1D1D);
+  color: #ffffff;
+}
+
+.form-save-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn-cancel {
+  padding: 0.65rem 1rem;
+  background: #ffffff;
+  border: 2px solid var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-save {
+  padding: 0.65rem 1.25rem;
+  background: var(--accent-yellow, #F0D700);
+  border: 2.5px solid var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--accent-black, #1D1D1D);
+}
+
+.btn-save:hover {
+  background: #ffe600;
+}
+
+/* Security Card */
+.security-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.security-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sec-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-muted, #9ca3af);
+  text-transform: uppercase;
+}
+
+.sec-value {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-black, #1D1D1D);
+}
+
+.sec-value.admin {
+  color: var(--accent-red, #E1251B);
+}
+
+.sec-value.member {
+  color: var(--accent-blue, #0056A3);
+}
+
+.sec-value.code {
+  font-family: monospace;
+  font-size: 0.75rem;
+  background: #f3f4f6;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+  max-width: fit-content;
+}
+
+.sec-value.active-dot {
+  color: #16a34a;
+}
+
+.security-tip-box {
+  background: #fffbeb;
+  border: 2px dashed #d97706;
+  padding: 1rem;
+}
+
+.tip-title {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #b45309;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.tip-text {
+  font-size: 0.78rem;
+  color: #78350f;
+  line-height: 1.4;
+}
+
+.tip-text code {
+  background: #fef3c7;
+  padding: 0.1rem 0.3rem;
+  font-weight: 800;
+}
+

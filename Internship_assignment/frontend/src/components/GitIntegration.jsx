@@ -299,3 +299,4 @@ function GitIntegration() {
 }
 
 export default GitIntegration;
+
