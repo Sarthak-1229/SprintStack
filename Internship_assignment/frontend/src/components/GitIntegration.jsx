@@ -32,7 +32,7 @@ function GitIntegration() {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
-  const [activeSetupTab, setActiveSetupTab] = useState('github'); // 'github' | 'localhook' | 'curl'
+  const [activeSetupTab, setActiveSetupTab] = useState('terminal'); // 'terminal' | 'localhook' | 'curl' | 'github'
 
   const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
   const webhookUrl = currentProject
@@ -155,275 +155,199 @@ curl -s -X POST "${commitApiUrl}" \\
       </div>
 
       <div className="git-grid">
-        {/* Left Column: Interactive Terminal & Dispatcher */}
+        {/* Left Column: Unified Git Automation Console */}
         <div className="git-left-panel">
-          <div className="terminal-card">
-            <div className="terminal-header">
-              <div className="terminal-buttons">
-                <span className="term-dot dot-red"></span>
-                <span className="term-dot dot-yellow"></span>
-                <span className="term-dot dot-green"></span>
-              </div>
-              <span className="terminal-title">developer@{user?.username}: ~/repo (branch: {branch})</span>
-            </div>
-
-            <div className="terminal-body">
-              <div className="terminal-intro">
-                <p># Type a commit message mentioning the Task ID (e.g. <code>TASK-102: ...</code>).</p>
-                <p># Pushing this commit triggers the webhook and automatically marks the task as <strong>DONE</strong>.</p>
-              </div>
-
-              {/* Task Quick-Selector */}
-              <div className="terminal-task-select-row">
-                <label className="term-label">Quick-link an Active Task:</label>
-                <select
-                  className="terminal-select"
-                  value={selectedTask}
-                  onChange={handleSelectTask}
-                >
-                  <option value="">-- Choose task to auto-prefix --</option>
-                  {activeTasks.map((t) => (
-                    <option key={t.id} value={t.taskId}>
-                      [{t.taskId}] {t.title} ({t.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Commit Input Form */}
-              <form onSubmit={handleCommitSubmit} className="terminal-form">
-                <div className="command-preview-line">
-                  <span className="term-prompt">$ git commit -m</span>
-                  <input
-                    type="text"
-                    required
-                    value={customMsg}
-                    onChange={(e) => setCustomMsg(e.target.value)}
-                    className="terminal-input"
-                    placeholder="e.g. TASK-102: implemented multi-project workspace tabs"
-                  />
-                </div>
-
-                <div className="terminal-actions-bar">
-                  <div className="branch-selector">
-                    <span className="branch-label">Branch:</span>
-                    <select
-                      className="branch-select"
-                      value={branch}
-                      onChange={(e) => setBranch(e.target.value)}
-                    >
-                      <option value="main">main</option>
-                      <option value="develop">develop</option>
-                      <option value="feature/kanban">feature/kanban</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="terminal-push-btn"
-                    disabled={isPushing}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                  >
-                    <Send size={13} />
-                    <span>{isPushing ? 'Pushing Commit...' : 'Push Commit ($ git push)'}</span>
-                  </button>
-                </div>
-              </form>
-
-              {/* Feedback Result */}
-              {lastResult && (
-                <div className={`terminal-output ${lastResult.success ? 'success' : 'error'}`}>
-                  {lastResult.success ? (
-                    <>
-                      <div className="term-out-line">✓ [remote: webhook] Commit accepted!</div>
-                      <div className="term-out-line">
-                        ➔ Linked Task(s): <strong>{lastResult.matched.join(', ') || 'None'}</strong> moved to <strong>Done</strong>
-                      </div>
-                      <div className="term-out-line">
-                        ➔ Commit SHA: <code>#{lastResult.commit?.commitHash}</code>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="term-out-line error">
-                      <AlertTriangle size={13} style={{ display: 'inline', marginRight: '4px' }} />
-                      <span>{lastResult.message}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Integration Setup Multi-Tab Card */}
-          <div className="webhook-info-card">
-            <div className="integration-tabs-bar" style={{ display: 'flex', borderBottom: '2.5px solid var(--accent-black)', marginBottom: '1.25rem', background: '#f3f4f6' }}>
+          <div className="git-console-card">
+            {/* Top Navigation Tabs */}
+            <div className="git-console-nav">
               <button
-                className={`tab-btn-setup ${activeSetupTab === 'github' ? 'active' : ''}`}
-                onClick={() => setActiveSetupTab('github')}
-                style={{
-                  flex: 1,
-                  padding: '0.65rem 0.5rem',
-                  border: 'none',
-                  borderRight: '2px solid var(--accent-black)',
-                  fontFamily: 'inherit',
-                  fontWeight: '800',
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  background: activeSetupTab === 'github' ? '#ffffff' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
+                type="button"
+                className={`git-console-tab ${activeSetupTab === 'terminal' ? 'active terminal-mode' : ''}`}
+                onClick={() => setActiveSetupTab('terminal')}
               >
-                <ExternalLink size={14} />
-                <span>GitHub Webhook</span>
+                <TerminalIcon size={14} />
+                <span>In-Browser Simulator</span>
               </button>
 
               <button
-                className={`tab-btn-setup ${activeSetupTab === 'localhook' ? 'active' : ''}`}
+                type="button"
+                className={`git-console-tab ${activeSetupTab === 'localhook' ? 'active' : ''}`}
                 onClick={() => setActiveSetupTab('localhook')}
-                style={{
-                  flex: 1,
-                  padding: '0.65rem 0.5rem',
-                  border: 'none',
-                  borderRight: '2px solid var(--accent-black)',
-                  fontFamily: 'inherit',
-                  fontWeight: '800',
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  background: activeSetupTab === 'localhook' ? '#ffffff' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
               >
-                <TerminalIcon size={14} />
+                <FolderGit2 size={14} />
                 <span>Local Git Hook (.git/hooks)</span>
               </button>
 
               <button
-                className={`tab-btn-setup ${activeSetupTab === 'curl' ? 'active' : ''}`}
+                type="button"
+                className={`git-console-tab ${activeSetupTab === 'curl' ? 'active' : ''}`}
                 onClick={() => setActiveSetupTab('curl')}
-                style={{
-                  flex: 1,
-                  padding: '0.65rem 0.5rem',
-                  border: 'none',
-                  fontFamily: 'inherit',
-                  fontWeight: '800',
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  background: activeSetupTab === 'curl' ? '#ffffff' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
               >
                 <Code2 size={14} />
-                <span>cURL Test</span>
+                <span>cURL Direct Test</span>
+              </button>
+
+              <button
+                type="button"
+                className={`git-console-tab ${activeSetupTab === 'github' ? 'active' : ''}`}
+                onClick={() => setActiveSetupTab('github')}
+              >
+                <ExternalLink size={14} />
+                <span>GitHub Webhook</span>
               </button>
             </div>
 
-            {/* Sub-tab 1: GitHub Webhook */}
-            {activeSetupTab === 'github' && (
-              <div>
-                <div className="webhook-card-header">
-                  <ExternalLink size={18} color="var(--accent-blue, #0056A3)" className="webhook-icon" />
-                  <div>
-                    <h4 className="webhook-card-title">Live GitHub Repository Webhook</h4>
-                    <p className="webhook-card-desc">
-                      Receives push events from GitHub and completes matching tasks:
-                    </p>
+            {/* Tab 1: Terminal Push Simulator */}
+            {activeSetupTab === 'terminal' && (
+              <div className="terminal-card-inner">
+                <div className="terminal-header">
+                  <div className="terminal-buttons">
+                    <span className="term-dot dot-red"></span>
+                    <span className="term-dot dot-yellow"></span>
+                    <span className="term-dot dot-green"></span>
                   </div>
+                  <span className="terminal-title">developer@{user?.username || 'user'}: ~/repo (branch: {branch})</span>
                 </div>
 
-                <div className="webhook-url-box">
-                  <input
-                    type="text"
-                    readOnly
-                    value={webhookUrl}
-                    className="webhook-url-input"
-                  />
-                  <button
-                    className="webhook-copy-btn"
-                    onClick={copyWebhookUrl}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                  >
-                    {copiedWebhook ? <Check size={12} /> : <Copy size={12} />}
-                    <span>{copiedWebhook ? 'Copied' : 'Copy URL'}</span>
-                  </button>
-                </div>
+                <div className="terminal-body">
+                  <div className="terminal-intro">
+                    <p># Type a commit message mentioning the Task ID (e.g. <code>TASK-102: ...</code>).</p>
+                    <p># Pushing this commit triggers the webhook and automatically marks the task as <strong>DONE</strong>.</p>
+                  </div>
 
-                <div className="webhook-instructions-compact">
-                  <span className="instructions-title">GitHub Setup:</span>
-                  <div className="instructions-grid-steps">
-                    <div className="inst-step-item">
-                      <span className="step-num">1</span>
-                      <span>Repo Settings ➔ Webhooks ➔ Add</span>
+                  {/* Task Quick-Selector */}
+                  <div className="terminal-task-select-row">
+                    <label className="term-label">Quick-link an Active Task:</label>
+                    <select
+                      className="terminal-select"
+                      value={selectedTask}
+                      onChange={handleSelectTask}
+                    >
+                      <option value="">-- Choose task to auto-prefix --</option>
+                      {activeTasks.map((t) => (
+                        <option key={t.id} value={t.taskId}>
+                          [{t.taskId}] {t.title} ({t.status})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Commit Input Form */}
+                  <form onSubmit={handleCommitSubmit} className="terminal-form">
+                    <div className="command-preview-line">
+                      <span className="term-prompt">$ git commit -m</span>
+                      <input
+                        type="text"
+                        required
+                        value={customMsg}
+                        onChange={(e) => setCustomMsg(e.target.value)}
+                        className="terminal-input"
+                        placeholder="e.g. TASK-102: implemented multi-project workspace tabs"
+                      />
                     </div>
-                    <div className="inst-step-item">
-                      <span className="step-num">2</span>
-                      <span>Paste URL as <strong>Payload URL</strong></span>
+
+                    <div className="terminal-actions-bar">
+                      <div className="branch-selector">
+                        <span className="branch-label">Branch:</span>
+                        <select
+                          className="branch-select"
+                          value={branch}
+                          onChange={(e) => setBranch(e.target.value)}
+                        >
+                          <option value="main">main</option>
+                          <option value="develop">develop</option>
+                          <option value="feature/kanban">feature/kanban</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="terminal-push-btn"
+                        disabled={isPushing}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                      >
+                        <Send size={13} />
+                        <span>{isPushing ? 'Pushing Commit...' : 'Push Commit ($ git push)'}</span>
+                      </button>
                     </div>
-                    <div className="inst-step-item">
-                      <span className="step-num">3</span>
-                      <span>Type: <code>application/json</code></span>
+                  </form>
+
+                  {/* Feedback Result */}
+                  {lastResult && (
+                    <div className={`terminal-output ${lastResult.success ? 'success' : 'error'}`}>
+                      {lastResult.success ? (
+                        <>
+                          <div className="term-out-line">✓ [remote: webhook] Commit accepted!</div>
+                          <div className="term-out-line">
+                            ➔ Linked Task(s): <strong>{lastResult.matched.join(', ') || 'None'}</strong> moved to <strong>Done</strong>
+                          </div>
+                          <div className="term-out-line">
+                            ➔ Commit SHA: <code>#{lastResult.commit?.commitHash}</code>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="term-out-line error">
+                          <AlertTriangle size={13} style={{ display: 'inline', marginRight: '4px' }} />
+                          <span>{lastResult.message}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="inst-step-item">
-                      <span className="step-num">4</span>
-                      <span>Push commits with <code>TASK-XXX</code></span>
-                    </div>
+                  )}
+
+                  {/* Switcher Helper Tips */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem', paddingTop: '0.4rem', borderTop: '1px dashed #374151' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Ready for real Git?</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSetupTab('localhook')}
+                      style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.7rem', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                    >
+                      Setup Local Git Hook
+                    </button>
+                    <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>•</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSetupTab('curl')}
+                      style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.7rem', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                    >
+                      Direct cURL
+                    </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Sub-tab 2: Local Git Hook */}
+            {/* Tab 2: Local Git Hook */}
             {activeSetupTab === 'localhook' && (
-              <div>
+              <div className="console-tab-body">
                 <div className="webhook-card-header">
-                  <TerminalIcon size={18} color="var(--accent-black)" className="webhook-icon" />
+                  <FolderGit2 size={20} color="var(--accent-black)" className="webhook-icon" />
                   <div>
                     <h4 className="webhook-card-title">Connect Real Local Git Commits</h4>
                     <p className="webhook-card-desc">
-                      Trigger task completion directly from your PC terminal when typing <code>git commit</code>
+                      Trigger automatic task completion directly from your PC terminal when typing <code>git commit</code>!
                     </p>
                   </div>
                 </div>
 
-                <div style={{ position: 'relative', marginBottom: '0.45rem' }}>
-                  <pre
-                    style={{
-                      background: '#111827',
-                      color: '#34d399',
-                      padding: '0.45rem 0.65rem',
-                      fontFamily: 'monospace',
-                      fontSize: '0.68rem',
-                      lineHeight: '1.3',
-                      border: '1.5px solid var(--accent-black)',
-                      overflowX: 'auto',
-                      maxHeight: '85px'
-                    }}
-                  >
+                <div style={{ position: 'relative', margin: '0.45rem 0' }}>
+                  <pre className="code-snippet-pre">
                     {localHookCode}
                   </pre>
                   <button
+                    type="button"
                     className="webhook-copy-btn"
                     onClick={copyLocalHook}
                     style={{
                       position: 'absolute',
-                      top: '5px',
-                      right: '5px',
-                      padding: '0.2rem 0.5rem',
-                      fontSize: '0.68rem',
+                      top: '6px',
+                      right: '6px',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.2rem'
+                      gap: '0.3rem'
                     }}
                   >
-                    {copiedScript ? <Check size={11} /> : <Copy size={11} />}
+                    {copiedScript ? <Check size={12} /> : <Copy size={12} />}
                     <span>{copiedScript ? 'Copied' : 'Copy Hook'}</span>
                   </button>
                 </div>
@@ -452,11 +376,11 @@ curl -s -X POST "${commitApiUrl}" \\
               </div>
             )}
 
-            {/* Sub-tab 3: cURL Command */}
+            {/* Tab 3: cURL Direct Test */}
             {activeSetupTab === 'curl' && (
-              <div>
+              <div className="console-tab-body">
                 <div className="webhook-card-header">
-                  <Code2 size={18} color="var(--accent-red, #E1251B)" className="webhook-icon" />
+                  <Code2 size={20} color="var(--accent-blue, #0056A3)" className="webhook-icon" />
                   <div>
                     <h4 className="webhook-card-title">One-Line cURL Test</h4>
                     <p className="webhook-card-desc">
@@ -465,45 +389,85 @@ curl -s -X POST "${commitApiUrl}" \\
                   </div>
                 </div>
 
-                <div style={{ position: 'relative', marginBottom: '0.45rem' }}>
-                  <pre
-                    style={{
-                      background: '#111827',
-                      color: '#f9fafb',
-                      padding: '0.45rem 0.65rem',
-                      fontFamily: 'monospace',
-                      fontSize: '0.68rem',
-                      lineHeight: '1.3',
-                      border: '1.5px solid var(--accent-black)',
-                      overflowX: 'auto',
-                      maxHeight: '75px',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-all'
-                    }}
-                  >
+                <div style={{ position: 'relative', margin: '0.45rem 0' }}>
+                  <pre className="code-snippet-pre curl-snippet">
                     {curlTestSnippet}
                   </pre>
                   <button
+                    type="button"
                     className="webhook-copy-btn"
                     onClick={copyCurl}
                     style={{
                       position: 'absolute',
-                      top: '5px',
-                      right: '5px',
-                      padding: '0.2rem 0.5rem',
-                      fontSize: '0.68rem',
+                      top: '6px',
+                      right: '6px',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.2rem'
+                      gap: '0.3rem'
                     }}
                   >
-                    {copiedCurl ? <Check size={11} /> : <Copy size={11} />}
+                    {copiedCurl ? <Check size={12} /> : <Copy size={12} />}
                     <span>{copiedCurl ? 'Copied' : 'Copy cURL'}</span>
                   </button>
                 </div>
 
                 <div className="curl-tip-badge">
                   <span>💡 Run this in your command terminal to test task completion for <code>TASK-102</code> without configuring git hooks.</span>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 4: GitHub Webhook */}
+            {activeSetupTab === 'github' && (
+              <div className="console-tab-body">
+                <div className="webhook-card-header">
+                  <ExternalLink size={20} color="var(--accent-blue, #0056A3)" className="webhook-icon" />
+                  <div>
+                    <h4 className="webhook-card-title">Live GitHub Repository Webhook</h4>
+                    <p className="webhook-card-desc">
+                      Receives push events from GitHub and completes matching tasks:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="webhook-url-box">
+                  <input
+                    type="text"
+                    readOnly
+                    value={webhookUrl}
+                    className="webhook-url-input"
+                  />
+                  <button
+                    type="button"
+                    className="webhook-copy-btn"
+                    onClick={copyWebhookUrl}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                  >
+                    {copiedWebhook ? <Check size={12} /> : <Copy size={12} />}
+                    <span>{copiedWebhook ? 'Copied' : 'Copy URL'}</span>
+                  </button>
+                </div>
+
+                <div className="webhook-instructions-compact">
+                  <span className="instructions-title">GitHub Setup:</span>
+                  <div className="instructions-grid-steps">
+                    <div className="inst-step-item">
+                      <span className="step-num">1</span>
+                      <span>Repo Settings ➔ Webhooks ➔ Add</span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">2</span>
+                      <span>Paste URL as <strong>Payload URL</strong></span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">3</span>
+                      <span>Content type: <code>application/json</code></span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">4</span>
+                      <span>Push commits with <code>TASK-XXX</code></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

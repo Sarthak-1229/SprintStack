@@ -15,6 +15,7 @@ import {
   FolderKanban
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
+import logoImg from '../assets/logo.png';
 import './Navbar.css';
 
 function Navbar({ activeTab, setActiveTab }) {
@@ -29,7 +30,7 @@ function Navbar({ activeTab, setActiveTab }) {
       {/* Brand & Project Selector */}
       <div className="navbar-brand-section">
         <div className="navbar-logo" onClick={() => setActiveTab('board')} style={{ cursor: 'pointer' }}>
-          <img src="/logo.jpg" alt="SprintStack Logo" className="navbar-brand-logo" />
+          <img src={logoImg} alt="SprintStack Logo" className="navbar-brand-logo" />
           <div className="logo-text-group">
             <h1 className="logo-title">SprintStack</h1>
             <span className="logo-tagline">DevOps Workflow</span>

@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Briefcase
 } from 'lucide-react';
+import logoImg from '../assets/logo.png';
 import './AuthPage.css';
 
 function AuthPage() {
@@ -145,7 +146,7 @@ function AuthPage() {
       <div className="auth-card">
         {/* Geometric Bauhaus Header */}
         <div className="auth-logo-header">
-          <img src="/logo.jpg" alt="SprintStack Logo" className="auth-brand-logo" />
+          <img src={logoImg} alt="SprintStack Logo" className="auth-brand-logo" />
         </div>
 
         <h1 className="auth-title">SprintStack</h1>

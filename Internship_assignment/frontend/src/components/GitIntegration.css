@@ -448,12 +448,13 @@
 
       /* Right Panel: Commits Card */
       .commits-card {
-        background: #ffffff;
-        border: 3px solid var(--accent-black, #1D1D1D);
-        box-shadow: 4px 4px 0 var(--accent-black, #1D1D1D);
-        display: flex;
-        flex-direction: column;
-      }
+  background: #ffffff;
+  border: 3px solid var(--accent-black, #1D1D1D);
+  box-shadow: 4px 4px 0 var(--accent-black, #1D1D1D);
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+}
 
       .commits-card-header {
         padding: 0.75rem 1rem;
@@ -474,13 +475,14 @@
       }
 
       .commits-list {
-        padding: 0.75rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        max-height: 520px;
-        overflow-y: auto;
-      }
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
 
       .commit-item {
         background: #ffffff;
@@ -555,3 +557,90 @@
             font-weight: 700;
             color: var(--text-muted, #9ca3af);
           }
+
+/* Console Card and Nav Tabs */
+.git-console-card {
+  background: #ffffff;
+  border: 3px solid var(--accent-black, #1D1D1D);
+  box-shadow: 4px 4px 0 var(--accent-black, #1D1D1D);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.git-console-nav {
+  display: flex;
+  border-bottom: 2.5px solid var(--accent-black, #1D1D1D);
+  background: #f3f4f6;
+  overflow-x: auto;
+}
+
+.git-console-tab {
+  flex: 1;
+  min-width: max-content;
+  padding: 0.65rem 0.85rem;
+  border: none;
+  border-right: 2px solid var(--accent-black, #1D1D1D);
+  background: transparent;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.76rem;
+  color: var(--accent-black, #1D1D1D);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.1s ease;
+}
+
+.git-console-tab:last-child {
+  border-right: none;
+}
+
+.git-console-tab:hover {
+  background: #e5e7eb;
+}
+
+.git-console-tab.active {
+  background: #ffffff;
+  color: var(--accent-blue, #0056A3);
+}
+
+.git-console-tab.active.terminal-mode {
+  background: #111827;
+  color: #38bdf8;
+}
+
+.terminal-card-inner {
+  background: #111827;
+  color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+}
+
+.console-tab-body {
+  padding: 0.85rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.code-snippet-pre {
+  background: #111827;
+  color: #34d399;
+  padding: 0.55rem 0.75rem;
+  font-family: monospace;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  border: 1.5px solid var(--accent-black, #1D1D1D);
+  overflow-x: auto;
+  max-height: 105px;
+  margin: 0;
+}
+
+.code-snippet-pre.curl-snippet {
+  color: #f9fafb;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
