@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import {
   ClipboardList,
@@ -8,53 +8,72 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  RotateCw,
   Layers,
-  ListFilter
+  List
 } from 'lucide-react';
 import TaskCard from './TaskCard';
 
 function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
   const isDoneColumn = col.id === 'Done';
+  const [viewMode, setViewMode] = useState('carousel'); // 'carousel' | 'list'
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [animDirection, setAnimDirection] = useState(''); // 'next' | 'prev' | ''
-  const [viewMode, setViewMode] = useState('wheel'); // 'wheel' | 'list'
 
-  // Clamp activeIdx if tasks change (e.g. task moved or deleted)
-  useEffect(() => {
-    if (activeIdx >= tasks.length && tasks.length > 0) {
-      setActiveIdx(tasks.length - 1);
-    }
-  }, [tasks.length, activeIdx]);
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
 
-  const handleRotateNext = (e) => {
-    if (e) e.stopPropagation();
-    if (tasks.length <= 1 || animDirection) return;
-    setAnimDirection('next');
-    setTimeout(() => {
-      setActiveIdx((prev) => (prev + 1) % tasks.length);
-      setAnimDirection('');
-    }, 280);
-  };
-
-  const handleRotatePrev = (e) => {
-    if (e) e.stopPropagation();
-    if (tasks.length <= 1 || animDirection) return;
-    setAnimDirection('prev');
-    setTimeout(() => {
-      setActiveIdx((prev) => (prev - 1 + tasks.length) % tasks.length);
-      setAnimDirection('');
-    }, 280);
-  };
-
-  const handleWheelScroll = (e) => {
-    if (viewMode !== 'wheel' || tasks.length <= 1 || animDirection) return;
-    if (Math.abs(e.deltaY) > 20) {
-      if (e.deltaY > 0) {
-        handleRotateNext();
-      } else {
-        handleRotatePrev();
+    // Determine which card is most visible
+    const cards = el.querySelectorAll('.carousel-card-slot');
+    if (cards.length === 0) return;
+    const containerRect = el.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    let closest = 0;
+    let closestDist = Infinity;
+    cards.forEach((card, i) => {
+      const rect = card.getBoundingClientRect();
+      const cardCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(cardCenter - containerCenter);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = i;
       }
+    });
+    setActiveIdx(closest);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      ro.disconnect();
+    };
+  }, [tasks.length, viewMode, updateScrollState]);
+
+  const scrollTo = (direction) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Scroll by one card width
+    const cardWidth = el.querySelector('.carousel-card-slot')?.offsetWidth || 280;
+    const gap = 14;
+    el.scrollBy({ left: direction === 'next' ? cardWidth + gap : -(cardWidth + gap), behavior: 'smooth' });
+  };
+
+  const scrollToIndex = (idx) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cards = el.querySelectorAll('.carousel-card-slot');
+    if (cards[idx]) {
+      cards[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   };
 
@@ -71,8 +90,7 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
     }
   };
 
-  const safeIdx = tasks.length > 0 ? Math.min(activeIdx, tasks.length - 1) : 0;
-  const isWheelMode = viewMode === 'wheel' && tasks.length > 1;
+  const isCarousel = viewMode === 'carousel' && tasks.length > 1;
 
   return (
     <div className={`column-container ${col.cssClass}`}>
@@ -87,21 +105,19 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          {/* Wheel / List View Mode Toggle (Only when multiple cards exist) */}
           {tasks.length > 1 && (
             <button
               type="button"
               className="card-wheel-toggle-mode"
-              onClick={() => setViewMode(viewMode === 'wheel' ? 'list' : 'wheel')}
-              title={viewMode === 'wheel' ? 'Switch to vertical list view' : 'Switch to 3D wheel pile view'}
+              onClick={() => setViewMode(viewMode === 'carousel' ? 'list' : 'carousel')}
+              title={viewMode === 'carousel' ? 'Switch to vertical list' : 'Switch to horizontal carousel'}
               aria-label="Toggle view mode"
             >
-              {viewMode === 'wheel' ? <ListFilter size={12} /> : <Layers size={12} />}
-              <span>{viewMode === 'wheel' ? 'List' : 'Wheel'}</span>
+              {viewMode === 'carousel' ? <List size={12} /> : <Layers size={12} />}
+              <span>{viewMode === 'carousel' ? 'List' : 'Carousel'}</span>
             </button>
           )}
 
-          {/* Add task button only on To Do / In Progress, and only for Admins */}
           {!isDoneColumn && canAddTask && (
             <button
               className="add-task-btn"
@@ -138,10 +154,10 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
         </div>
       </div>
 
-      <Droppable droppableId={col.id}>
+      <Droppable droppableId={col.id} direction={isCarousel ? 'horizontal' : 'vertical'}>
         {(provided, snapshot) => (
           <div
-            className={`column-content ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+            className={`column-content ${snapshot.isDraggingOver ? 'dragging-over' : ''} ${isCarousel ? 'carousel-mode' : ''}`}
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
@@ -159,104 +175,73 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
               </div>
             )}
 
-            {/* 3D Rotating Wheel Pile Mode (When cards are piled up) */}
-            {isWheelMode ? (
-              <>
-                {/* Rotating Controls Bar */}
-                <div className="card-wheel-controls">
-                  <button
-                    type="button"
-                    className="card-wheel-nav-btn"
-                    onClick={handleRotatePrev}
-                    title="Rotate to previous card in pile"
-                    aria-label="Previous Task Card"
-                  >
-                    <ChevronLeft size={13} />
-                    <span>Prev</span>
-                  </button>
-
-                  <div
-                    className="card-wheel-indicator"
-                    onClick={handleRotateNext}
-                    title="Click or scroll mouse wheel over cards to rotate through pile"
-                  >
-                    <RotateCw size={12} className={animDirection ? 'spin-once' : ''} />
-                    <span>Task {safeIdx + 1} of {tasks.length}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="card-wheel-nav-btn"
-                    onClick={handleRotateNext}
-                    title="Rotate to next card in pile"
-                    aria-label="Next Task Card"
-                  >
-                    <span>Next</span>
-                    <ChevronRight size={13} />
-                  </button>
-                </div>
-
-                {/* 3D Card Stack Stage */}
-                <div
-                  className={`cards-wheel-pile-stage ${animDirection ? `anim-rotate-${animDirection}` : ''}`}
-                  onWheel={handleWheelScroll}
+            {isCarousel ? (
+              <div className="carousel-wrapper">
+                {/* Left Arrow */}
+                <button
+                  type="button"
+                  className={`carousel-arrow carousel-arrow-left ${canScrollLeft ? '' : 'hidden-arrow'}`}
+                  onClick={() => scrollTo('prev')}
+                  aria-label="Scroll left"
                 >
-                  {tasks.map((task, index) => {
-                    const offset = (index - safeIdx + tasks.length) % tasks.length;
-                    let pileClass = 'pile-hidden';
-                    let isPeek = false;
+                  <ChevronLeft size={18} />
+                </button>
 
-                    if (offset === 0) {
-                      pileClass = 'pile-active';
-                    } else if (offset === 1) {
-                      pileClass = 'pile-peek-1';
-                      isPeek = true;
-                    } else if (offset === 2 && tasks.length >= 3) {
-                      pileClass = 'pile-peek-2';
-                      isPeek = true;
-                    } else if (offset === tasks.length - 1 && animDirection === 'prev') {
-                      pileClass = 'pile-peek-last';
-                    }
+                {/* Scrollable Track */}
+                <div className="carousel-track" ref={scrollRef}>
+                  {tasks.map((task, index) => (
+                    <div className="carousel-card-slot" key={task.id}>
+                      <TaskCard
+                        task={task}
+                        index={index}
+                        onEdit={onEditTask}
+                        onView={() => onViewTask(task)}
+                      />
+                    </div>
+                  ))}
+                  {provided.placeholder}
+                </div>
 
-                    return (
-                      <div
+                {/* Right Arrow */}
+                <button
+                  type="button"
+                  className={`carousel-arrow carousel-arrow-right ${canScrollRight ? '' : 'hidden-arrow'}`}
+                  onClick={() => scrollTo('next')}
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight size={18} />
+                </button>
+
+                {/* Dot Indicators */}
+                {tasks.length > 1 && (
+                  <div className="carousel-dots">
+                    {tasks.map((task, i) => (
+                      <button
                         key={task.id}
-                        className={`pile-card-wrapper ${pileClass}`}
-                        onClick={isPeek ? handleRotateNext : undefined}
-                        title={isPeek ? `Click to rotate to [${task.taskId}] ${task.title}` : undefined}
-                      >
-                        <TaskCard
-                          task={task}
-                          index={index}
-                          onEdit={onEditTask}
-                          onView={() => onViewTask(task)}
-                          isWheelPeek={isPeek}
-                          onWheelPeekClick={handleRotateNext}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="wheel-scroll-tip">
-                  <RotateCw size={11} />
-                  <span>Scroll mouse wheel or click Next to rotate through cards</span>
-                </div>
-              </>
+                        type="button"
+                        className={`carousel-dot ${i === activeIdx ? 'active' : ''}`}
+                        onClick={() => scrollToIndex(i)}
+                        aria-label={`Go to task ${i + 1}`}
+                        title={`[${task.taskId}] ${task.title}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              /* Single Card or Classic List Mode */
-              tasks.map((task, index) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  index={index}
-                  onEdit={onEditTask}
-                  onView={() => onViewTask(task)}
-                />
-              ))
+              <>
+                {tasks.map((task, index) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    onEdit={onEditTask}
+                    onView={() => onViewTask(task)}
+                  />
+                ))}
+                {provided.placeholder}
+              </>
             )}
-
-            {provided.placeholder}
           </div>
         )}
       </Droppable>
