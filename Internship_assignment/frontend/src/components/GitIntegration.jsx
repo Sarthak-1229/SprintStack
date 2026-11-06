@@ -2,12 +2,26 @@ import React, { useState } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import {
+  GitCommit,
+  FolderGit2,
+  GitBranch,
+  ExternalLink,
+  Copy,
+  Check,
+  AlertTriangle,
+  Send,
+  Terminal as TerminalIcon,
+  CheckCircle2,
+  Clock,
+  Code2
+} from 'lucide-react';
 import './GitIntegration.css';
 
 function GitIntegration() {
   const { currentProject } = useProject();
   const { tasks, commits, simulateCommit } = useTaskContext();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const [selectedTask, setSelectedTask] = useState('');
   const [customMsg, setCustomMsg] = useState('');
@@ -15,11 +29,18 @@ function GitIntegration() {
   const [isPushing, setIsPushing] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
+  const [activeSetupTab, setActiveSetupTab] = useState('github'); // 'github' | 'localhook' | 'curl'
 
   const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
   const webhookUrl = currentProject
     ? `${BACKEND_URL}/api/projects/${currentProject.id}/webhook`
     : `${BACKEND_URL}/api/projects/:projectId/webhook`;
+
+  const commitApiUrl = currentProject
+    ? `${BACKEND_URL}/api/projects/${currentProject.id}/commit`
+    : `${BACKEND_URL}/api/projects/:projectId/commit`;
 
   // Tasks eligible for completion (In Progress or To Do)
   const activeTasks = tasks.filter((t) => t.status !== 'Done');
@@ -69,11 +90,42 @@ function GitIntegration() {
     setTimeout(() => setCopiedWebhook(false), 2000);
   };
 
+  const localHookCode = `#!/bin/sh
+# SprintStack Local Git Hook (.git/hooks/post-commit)
+COMMIT_MSG=$(git log -1 --pretty=%B)
+COMMIT_HASH=$(git log -1 --pretty=%h)
+AUTHOR=$(git log -1 --pretty=%an)
+
+curl -s -X POST "${commitApiUrl}" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${token || '<YOUR_TOKEN>'}" \\
+  -d "{\\"commitMessage\\":\\"$COMMIT_MSG\\",\\"commitHash\\":\\"$COMMIT_HASH\\",\\"author\\":\\"$AUTHOR\\"}" > /dev/null
+`;
+
+  const curlTestSnippet = `curl -X POST "${commitApiUrl}" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${token || '<TOKEN>'}" \\
+  -d '{"commitMessage":"TASK-102: verified from terminal","author":"${user?.username || 'dev'}"}'`;
+
+  const copyLocalHook = () => {
+    navigator.clipboard.writeText(localHookCode);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2000);
+  };
+
+  const copyCurl = () => {
+    navigator.clipboard.writeText(curlTestSnippet);
+    setCopiedCurl(true);
+    setTimeout(() => setCopiedCurl(false), 2000);
+  };
+
   if (!currentProject) {
     return (
       <div className="git-container empty">
         <div className="git-empty-card">
-          <div className="git-icon">🐙</div>
+          <div className="git-icon" style={{ display: 'flex', justifyContent: 'center' }}>
+            <GitCommit size={48} color="var(--accent-black)" />
+          </div>
           <h3>No Active Project Selected</h3>
           <p>Please select or join a project from the Projects Hub to view its Git automation console.</p>
         </div>
@@ -94,7 +146,7 @@ function GitIntegration() {
         </div>
 
         <div className="git-repo-pill">
-          <span className="repo-icon">📂</span>
+          <FolderGit2 size={15} className="repo-icon" />
           <span className="repo-url">
             {currentProject.githubRepo || 'https://github.com/SprintStack/project-repo'}
           </span>
@@ -169,8 +221,10 @@ function GitIntegration() {
                     type="submit"
                     className="terminal-push-btn"
                     disabled={isPushing}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                   >
-                    {isPushing ? 'Pushing Commit...' : '🚀 Push Commit ($ git push)'}
+                    <Send size={13} />
+                    <span>{isPushing ? 'Pushing Commit...' : 'Push Commit ($ git push)'}</span>
                   </button>
                 </div>
               </form>
@@ -182,54 +236,244 @@ function GitIntegration() {
                     <>
                       <div className="term-out-line">✓ [remote: webhook] Commit accepted!</div>
                       <div className="term-out-line">
-                        ➔ Linked Task(s): <strong>{lastResult.matched.join(', ') || 'None'}</strong> moved to <strong>Done</strong> ✅
+                        ➔ Linked Task(s): <strong>{lastResult.matched.join(', ') || 'None'}</strong> moved to <strong>Done</strong>
                       </div>
                       <div className="term-out-line">
                         ➔ Commit SHA: <code>#{lastResult.commit?.commitHash}</code>
                       </div>
                     </>
                   ) : (
-                    <div className="term-out-line error">❌ {lastResult.message}</div>
+                    <div className="term-out-line error">
+                      <AlertTriangle size={13} style={{ display: 'inline', marginRight: '4px' }} />
+                      <span>{lastResult.message}</span>
+                    </div>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* GitHub Webhook Info Card */}
+          {/* Integration Setup Multi-Tab Card */}
           <div className="webhook-info-card">
-            <div className="webhook-card-header">
-              <span className="webhook-icon">🌐</span>
-              <div>
-                <h4 className="webhook-card-title">Live GitHub Repository Webhook</h4>
-                <p className="webhook-card-desc">
-                  Connect your real GitHub repository settings to this webhook URL:
-                </p>
-              </div>
-            </div>
+            <div className="integration-tabs-bar" style={{ display: 'flex', borderBottom: '2.5px solid var(--accent-black)', marginBottom: '1.25rem', background: '#f3f4f6' }}>
+              <button
+                className={`tab-btn-setup ${activeSetupTab === 'github' ? 'active' : ''}`}
+                onClick={() => setActiveSetupTab('github')}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 0.5rem',
+                  border: 'none',
+                  borderRight: '2px solid var(--accent-black)',
+                  fontFamily: 'inherit',
+                  fontWeight: '800',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  background: activeSetupTab === 'github' ? '#ffffff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <ExternalLink size={14} />
+                <span>GitHub Webhook</span>
+              </button>
 
-            <div className="webhook-url-box">
-              <input
-                type="text"
-                readOnly
-                value={webhookUrl}
-                className="webhook-url-input"
-              />
-              <button className="webhook-copy-btn" onClick={copyWebhookUrl}>
-                {copiedWebhook ? '✓ Copied' : '📋 Copy URL'}
+              <button
+                className={`tab-btn-setup ${activeSetupTab === 'localhook' ? 'active' : ''}`}
+                onClick={() => setActiveSetupTab('localhook')}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 0.5rem',
+                  border: 'none',
+                  borderRight: '2px solid var(--accent-black)',
+                  fontFamily: 'inherit',
+                  fontWeight: '800',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  background: activeSetupTab === 'localhook' ? '#ffffff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <TerminalIcon size={14} />
+                <span>Local Git Hook (.git/hooks)</span>
+              </button>
+
+              <button
+                className={`tab-btn-setup ${activeSetupTab === 'curl' ? 'active' : ''}`}
+                onClick={() => setActiveSetupTab('curl')}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 0.5rem',
+                  border: 'none',
+                  fontFamily: 'inherit',
+                  fontWeight: '800',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  background: activeSetupTab === 'curl' ? '#ffffff' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <Code2 size={14} />
+                <span>cURL Test</span>
               </button>
             </div>
 
-            <div className="webhook-instructions">
-              <span className="instructions-title">GitHub Setup Instructions:</span>
-              <ol className="instructions-list">
-                <li>Go to your GitHub repo ➔ <strong>Settings</strong> ➔ <strong>Webhooks</strong> ➔ <strong>Add webhook</strong>.</li>
-                <li>Paste the Webhook URL above into the <strong>Payload URL</strong> field.</li>
-                <li>Set <strong>Content type</strong> to <code>application/json</code>.</li>
-                <li>Under "Which events would you like to trigger this webhook?", select <strong>Just the push event</strong>.</li>
-                <li>Click <strong>Add webhook</strong>. Now whenever someone pushes a commit with <code>TASK-XXX</code>, it auto-updates!</li>
-              </ol>
-            </div>
+            {/* Sub-tab 1: GitHub Webhook */}
+            {activeSetupTab === 'github' && (
+              <div>
+                <div className="webhook-card-header">
+                  <ExternalLink size={22} color="var(--accent-blue, #0056A3)" className="webhook-icon" />
+                  <div>
+                    <h4 className="webhook-card-title">Live GitHub Repository Webhook</h4>
+                    <p className="webhook-card-desc">
+                      Receives push events from GitHub and completes matching tasks:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="webhook-url-box">
+                  <input
+                    type="text"
+                    readOnly
+                    value={webhookUrl}
+                    className="webhook-url-input"
+                  />
+                  <button
+                    className="webhook-copy-btn"
+                    onClick={copyWebhookUrl}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    {copiedWebhook ? <Check size={13} /> : <Copy size={13} />}
+                    <span>{copiedWebhook ? 'Copied' : 'Copy URL'}</span>
+                  </button>
+                </div>
+
+                <div className="webhook-instructions">
+                  <span className="instructions-title">GitHub Setup Instructions:</span>
+                  <ol className="instructions-list">
+                    <li>Go to your GitHub repo ➔ <strong>Settings</strong> ➔ <strong>Webhooks</strong> ➔ <strong>Add webhook</strong>.</li>
+                    <li>Paste the Webhook URL above into the <strong>Payload URL</strong> field.</li>
+                    <li>Set <strong>Content type</strong> to <code>application/json</code>.</li>
+                    <li>Under "Which events would you like to trigger this webhook?", select <strong>Just the push event</strong>.</li>
+                    <li>Click <strong>Add webhook</strong>. Pushing commits with <code>TASK-XXX</code> triggers live completion!</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 2: Local Git Hook */}
+            {activeSetupTab === 'localhook' && (
+              <div>
+                <div className="webhook-card-header">
+                  <TerminalIcon size={22} color="var(--accent-black)" className="webhook-icon" />
+                  <div>
+                    <h4 className="webhook-card-title">Connect Real Local Git Commits</h4>
+                    <p className="webhook-card-desc">
+                      Trigger task completion directly from your PC terminal when typing <code>git commit</code>!
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                  <pre
+                    style={{
+                      background: '#111827',
+                      color: '#34d399',
+                      padding: '0.85rem',
+                      fontFamily: 'monospace',
+                      fontSize: '0.72rem',
+                      border: '2px solid var(--accent-black)',
+                      overflowX: 'auto',
+                      maxHeight: '140px'
+                    }}
+                  >
+                    {localHookCode}
+                  </pre>
+                  <button
+                    className="webhook-copy-btn"
+                    onClick={copyLocalHook}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      padding: '0.3rem 0.6rem',
+                      fontSize: '0.72rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    {copiedScript ? <Check size={11} /> : <Copy size={11} />}
+                    <span>{copiedScript ? 'Copied Hook' : 'Copy Hook Script'}</span>
+                  </button>
+                </div>
+
+                <div className="webhook-instructions">
+                  <span className="instructions-title">How to activate in your local repo:</span>
+                  <ol className="instructions-list">
+                    <li>Inside your project repository, open <code>.git/hooks/post-commit</code>.</li>
+                    <li>Paste the code above and save.</li>
+                    <li>Make it executable (Mac/Linux: <code>chmod +x .git/hooks/post-commit</code>).</li>
+                    <li>Now whenever you commit with <code>git commit -m "TASK-XXX: ..."</code>, SprintStack updates live!</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 3: cURL Command */}
+            {activeSetupTab === 'curl' && (
+              <div>
+                <div className="webhook-card-header">
+                  <Code2 size={22} color="var(--accent-red, #E1251B)" className="webhook-icon" />
+                  <div>
+                    <h4 className="webhook-card-title">One-Line cURL Test</h4>
+                    <p className="webhook-card-desc">
+                      Test commit automation immediately from your command prompt / terminal:
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                  <pre
+                    style={{
+                      background: '#111827',
+                      color: '#f9fafb',
+                      padding: '0.85rem',
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      border: '2px solid var(--accent-black)',
+                      overflowX: 'auto'
+                    }}
+                  >
+                    {curlTestSnippet}
+                  </pre>
+                  <button
+                    className="webhook-copy-btn"
+                    onClick={copyCurl}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      padding: '0.3rem 0.6rem',
+                      fontSize: '0.72rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    {copiedCurl ? <Check size={11} /> : <Copy size={11} />}
+                    <span>{copiedCurl ? 'Copied' : 'Copy Command'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -245,7 +489,9 @@ function GitIntegration() {
 
             {commits.length === 0 ? (
               <div className="commits-empty">
-                <span className="empty-stream-icon">🪵</span>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                  <GitBranch size={36} color="var(--text-muted)" />
+                </div>
                 <p>No commits recorded yet for this project.</p>
                 <span className="empty-sub">
                   Use the terminal on the left to push your first commit!
@@ -263,8 +509,9 @@ function GitIntegration() {
                         <span className="commit-author-name">{c.author}</span>
                       </div>
 
-                      <span className="commit-hash">
-                        #{c.commitHash ? c.commitHash.substring(0, 7) : 'head'}
+                      <span className="commit-hash" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <GitCommit size={11} />
+                        <span>#{c.commitHash ? c.commitHash.substring(0, 7) : 'head'}</span>
                       </span>
                     </div>
 
@@ -274,8 +521,9 @@ function GitIntegration() {
                       <div className="matched-tasks-tags">
                         {c.matchedTasks && c.matchedTasks.length > 0 ? (
                           c.matchedTasks.map((tid, idx) => (
-                            <span key={idx} className="matched-task-badge">
-                              ✓ {tid} Completed
+                            <span key={idx} className="matched-task-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <CheckCircle2 size={11} color="#16a34a" />
+                              <span>{tid} Completed</span>
                             </span>
                           ))
                         ) : (
@@ -283,8 +531,11 @@ function GitIntegration() {
                         )}
                       </div>
 
-                      <span className="commit-time">
-                        {c.createdAt ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      <span className="commit-time" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <Clock size={11} />
+                        <span>
+                          {c.createdAt ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -299,4 +550,3 @@ function GitIntegration() {
 }
 
 export default GitIntegration;
-

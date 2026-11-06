@@ -1,17 +1,38 @@
 import React from 'react';
 import { Droppable } from '@hello-pangea/dnd';
+import {
+  ClipboardList,
+  Clock,
+  CheckCircle2,
+  Lock,
+  Plus
+} from 'lucide-react';
 import TaskCard from './TaskCard';
 
 function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
   const isDoneColumn = col.id === 'Done';
+
+  const renderEmptyIcon = () => {
+    switch (col.id) {
+      case 'To Do':
+        return <ClipboardList size={26} color="var(--text-muted)" />;
+      case 'In Progress':
+        return <Clock size={26} color="var(--text-muted)" />;
+      case 'Done':
+        return <CheckCircle2 size={26} color="#16a34a" />;
+      default:
+        return <ClipboardList size={26} color="var(--text-muted)" />;
+    }
+  };
 
   return (
     <div className={`column-container ${col.cssClass}`}>
       <div className="column-header">
         <div className="column-header-left">
           <span className="column-dot" />
-          <h2 className="column-title">
-            {isDoneColumn ? 'Done 🔒' : col.label}
+          <h2 className="column-title" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span>{col.label}</span>
+            {isDoneColumn && <Lock size={12} color="var(--accent-black)" />}
           </h2>
           <span className="task-count">{tasks.length}</span>
         </div>
@@ -24,8 +45,9 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
             onClick={onAddTask}
             title={`Add task to ${col.label}`}
             aria-label={`Add task to ${col.label}`}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            +
+            <Plus size={14} />
           </button>
         )}
 
@@ -39,10 +61,14 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
               background: '#fef08a',
               border: '1px solid var(--accent-black)',
               padding: '0.15rem 0.4rem',
-              letterSpacing: '0.5px'
+              letterSpacing: '0.5px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem'
             }}
           >
-            COMMIT ONLY
+            <Lock size={10} />
+            <span>COMMIT ONLY</span>
           </span>
         )}
       </div>
@@ -56,7 +82,9 @@ function Column({ col, tasks, onAddTask, onEditTask, onViewTask, canAddTask }) {
           >
             {tasks.length === 0 && !snapshot.isDraggingOver && (
               <div className="column-empty">
-                <span className="column-empty-icon">{col.emptyIcon}</span>
+                <div className="column-empty-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                  {renderEmptyIcon()}
+                </div>
                 <span>{col.emptyText}</span>
                 {isDoneColumn && (
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>

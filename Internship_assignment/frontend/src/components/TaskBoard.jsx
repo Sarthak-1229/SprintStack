@@ -3,14 +3,32 @@ import { DragDropContext } from '@hello-pangea/dnd';
 import { useTaskContext } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
+import {
+  ClipboardList,
+  Clock,
+  CheckCircle2,
+  Copy,
+  Check,
+  AlertOctagon,
+  Sparkles,
+  Search,
+  User,
+  Users,
+  Plus,
+  ArrowRight,
+  X,
+  FolderKanban,
+  ShieldCheck,
+  Zap
+} from 'lucide-react';
 import Column from './Column';
 import TaskModal from './TaskModal';
 import TaskViewModal from './TaskViewModal';
 
 const COLUMNS = [
-  { id: 'To Do', label: 'To Do', cssClass: 'column-todo', emptyIcon: '📋', emptyText: 'No tasks pending' },
-  { id: 'In Progress', label: 'In Progress', cssClass: 'column-inprogress', emptyIcon: '⚡', emptyText: 'Nothing in progress' },
-  { id: 'Done', label: 'Done', cssClass: 'column-done', emptyIcon: '✅', emptyText: 'No completed tasks' },
+  { id: 'To Do', label: 'To Do', cssClass: 'column-todo', emptyText: 'No tasks pending' },
+  { id: 'In Progress', label: 'In Progress', cssClass: 'column-inprogress', emptyText: 'Nothing in progress' },
+  { id: 'Done', label: 'Done', cssClass: 'column-done', emptyText: 'No completed tasks' },
 ];
 
 function ProgressChart({ tasks }) {
@@ -82,6 +100,7 @@ function TaskBoard({ onNavigateTab }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [defaultColumn, setDefaultColumn] = useState('To Do');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -144,7 +163,9 @@ function TaskBoard({ onNavigateTab }) {
     return (
       <div className="task-board-wrapper" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
         <div style={{ background: '#ffffff', border: '3.5px solid var(--accent-black)', padding: '3rem', maxWidth: '600px', margin: '0 auto', boxShadow: '8px 8px 0 var(--accent-black)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <FolderKanban size={48} color="var(--accent-black)" />
+          </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '900', marginBottom: '0.5rem' }}>
             No Active Project Selected
           </h2>
@@ -154,9 +175,10 @@ function TaskBoard({ onNavigateTab }) {
           <button
             className="btn btn-primary"
             onClick={() => onNavigateTab && onNavigateTab('projects')}
-            style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: '900' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: '900' }}
           >
-            Go to Projects Hub ➔
+            <span>Go to Projects Hub</span>
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>
@@ -203,7 +225,7 @@ function TaskBoard({ onNavigateTab }) {
                 }}
               >
                 <span>TEAM CODE: {currentProject.code}</span>
-                <span>{copiedCode ? '✓' : '📋'}</span>
+                {copiedCode ? <Check size={11} color="#16a34a" /> : <Copy size={11} />}
               </button>
             </div>
             {currentProject.description && (
@@ -215,9 +237,25 @@ function TaskBoard({ onNavigateTab }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Members Avatars */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#f8f9fa', padding: '0.35rem 0.6rem', border: '1.5px solid var(--accent-black)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)' }}>TEAM:</span>
+          {/* Members Avatars Button */}
+          <button
+            onClick={() => setTeamModalOpen(true)}
+            title="Click to view full team roster"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              background: '#f8f9fa',
+              padding: '0.35rem 0.75rem',
+              border: '2px solid var(--accent-black)',
+              cursor: 'pointer',
+              boxShadow: '2px 2px 0 var(--accent-black)'
+            }}
+          >
+            <Users size={14} />
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--accent-black)' }}>
+              TEAM ({currentProject.members ? currentProject.members.length : 0}):
+            </span>
             <div style={{ display: 'flex' }}>
               {currentProject.members && currentProject.members.slice(0, 5).map((m, idx) => (
                 <div
@@ -242,16 +280,17 @@ function TaskBoard({ onNavigateTab }) {
                 </div>
               ))}
             </div>
-          </div>
+          </button>
 
           {isAdmin && (
             <button
               className="btn btn-primary"
               id="add-task-header-btn"
               onClick={() => openAddModal('To Do')}
-              style={{ fontWeight: '900', padding: '0.55rem 1rem' }}
+              style={{ fontWeight: '900', padding: '0.55rem 1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              + Create & Assign Task
+              <Plus size={15} />
+              <span>Create & Assign Task</span>
             </button>
           )}
         </div>
@@ -277,10 +316,10 @@ function TaskBoard({ onNavigateTab }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>⛔</span>
+            <AlertOctagon size={22} color="var(--accent-red)" style={{ flexShrink: 0 }} />
             <span>{ruleAlert}</span>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
             <button
               onClick={() => onNavigateTab && onNavigateTab('git')}
               style={{
@@ -289,10 +328,14 @@ function TaskBoard({ onNavigateTab }) {
                 fontWeight: '900',
                 padding: '0.4rem 0.8rem',
                 fontSize: '0.8rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem'
               }}
             >
-              Open Git Terminal ➔
+              <span>Open Git Terminal</span>
+              <ArrowRight size={13} />
             </button>
             <button
               onClick={() => setRuleAlert(null)}
@@ -302,10 +345,12 @@ function TaskBoard({ onNavigateTab }) {
                 fontWeight: '900',
                 padding: '0.4rem 0.6rem',
                 fontSize: '0.8rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center'
               }}
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -328,7 +373,7 @@ function TaskBoard({ onNavigateTab }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>🎉</span>
+            <Sparkles size={22} color="#059669" style={{ flexShrink: 0 }} />
             <div>
               <span style={{ fontWeight: '900', color: '#065f46', display: 'block' }}>
                 Git Commit Verified! [{commitCelebration.taskId}] has been automatically completed!
@@ -345,10 +390,14 @@ function TaskBoard({ onNavigateTab }) {
               border: '2px solid var(--accent-black)',
               fontWeight: '900',
               padding: '0.35rem 0.6rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
             }}
           >
-            ✕ Dismiss
+            <X size={13} />
+            <span>Dismiss</span>
           </button>
         </div>
       )}
@@ -364,14 +413,17 @@ function TaskBoard({ onNavigateTab }) {
           flexWrap: 'wrap'
         }}
       >
-        <input
-          type="text"
-          placeholder="🔍 Search tasks by title or keyword..."
-          className="form-input search-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ width: '320px', marginBottom: 0, border: '2.5px solid var(--accent-black)' }}
-        />
+        <div style={{ position: 'relative', width: '320px' }}>
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            placeholder="Search tasks by title or keyword..."
+            className="form-input search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '100%', paddingLeft: '32px', marginBottom: 0, border: '2.5px solid var(--accent-black)' }}
+          />
+        </div>
         <div className="filter-chips" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {['All', 'Assigned to Me', 'High Priority', 'Overdue', 'Bugs'].map((f) => (
             <button
@@ -382,10 +434,14 @@ function TaskBoard({ onNavigateTab }) {
                 padding: '0.4rem 0.85rem',
                 fontSize: '0.82rem',
                 border: '2px solid var(--accent-black)',
-                boxShadow: activeFilter === f ? '2px 2px 0 var(--accent-black)' : 'none'
+                boxShadow: activeFilter === f ? '2px 2px 0 var(--accent-black)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
               }}
             >
-              {f === 'Assigned to Me' ? `👤 My Tasks (${myTasksCount})` : f}
+              {f === 'Assigned to Me' && <User size={13} />}
+              <span>{f === 'Assigned to Me' ? `My Tasks (${myTasksCount})` : f}</span>
             </button>
           ))}
         </div>
@@ -426,6 +482,119 @@ function TaskBoard({ onNavigateTab }) {
       )}
       {viewingTask && (
         <TaskViewModal task={viewingTask} onClose={() => setViewingTask(null)} />
+      )}
+
+      {/* Team Roster Modal */}
+      {teamModalOpen && (
+        <div className="modal-backdrop" onClick={() => setTeamModalOpen(false)}>
+          <div
+            className="modal-box"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '560px', padding: '1.75rem' }}
+          >
+            <div className="modal-header" style={{ marginBottom: '1.25rem', borderBottom: '2px solid var(--accent-black)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={20} />
+                <h3 className="modal-title">Project Team Roster</h3>
+              </div>
+              <button className="modal-close-btn" onClick={() => setTeamModalOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ background: '#f8f9fa', border: '2px solid var(--accent-black)', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)' }}>INVITATION CODE</span>
+                <div style={{ fontSize: '1.1rem', fontWeight: '900', color: 'var(--accent-black)' }}>
+                  {currentProject.code}
+                </div>
+              </div>
+              <button
+                onClick={copyProjectCode}
+                className="btn btn-primary"
+                style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                {copiedCode ? <Check size={12} /> : <Copy size={12} />}
+                <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto' }}>
+              {currentProject.members && currentProject.members.map((m, idx) => {
+                const memberTasks = tasks.filter((t) => t.assignee === m.username);
+                const doneCount = memberTasks.filter((t) => t.status === 'Done').length;
+
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      background: '#ffffff',
+                      border: '2px solid var(--accent-black)',
+                      boxShadow: '2px 2px 0 var(--accent-black)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: 'var(--accent-black)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '900',
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        {m.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: '900', fontSize: '0.9rem', color: 'var(--accent-black)' }}>
+                          @{m.username}
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {memberTasks.length} tasks ({doneCount} completed)
+                        </span>
+                      </div>
+                    </div>
+
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: '900',
+                        padding: '0.2rem 0.5rem',
+                        border: '1.5px solid var(--accent-black)',
+                        background: m.role === 'admin' ? 'var(--accent-yellow, #F0D700)' : '#e0f2fe',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      {m.role === 'admin' ? <ShieldCheck size={11} /> : <Zap size={11} />}
+                      <span>{m.role === 'admin' ? 'ADMIN' : 'MEMBER'}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setTeamModalOpen(false)}
+                style={{ padding: '0.5rem 1.25rem' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

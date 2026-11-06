@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import {
+  Plus,
+  Key,
+  Copy,
+  Check,
+  ShieldCheck,
+  Zap,
+  GitBranch,
+  Folder,
+  ArrowRight,
+  X,
+  AlertTriangle
+} from 'lucide-react';
 import './ProjectsHub.css';
 
 function ProjectsHub({ onSelectProject }) {
@@ -81,12 +94,18 @@ function ProjectsHub({ onSelectProject }) {
 
         <div className="hub-header-actions">
           {isAdmin ? (
-            <button className="hub-action-btn primary" onClick={() => setModalOpen(true)}>
-              ➕ Create New Project
+            <button
+              className="hub-action-btn primary"
+              onClick={() => setModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Plus size={16} />
+              <span>Create New Project</span>
             </button>
           ) : (
-            <span className="member-role-hint">
-              🛡️ Admins create projects. As a Team Member, enter a code below to join!
+            <span className="member-role-hint" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ShieldCheck size={14} color="var(--accent-red, #E1251B)" />
+              <span>Admins create projects. As a Team Member, enter a code below to join!</span>
             </span>
           )}
         </div>
@@ -94,7 +113,9 @@ function ProjectsHub({ onSelectProject }) {
 
       {/* Join Project Bar */}
       <div className="join-project-card">
-        <div className="join-icon">🔑</div>
+        <div className="join-icon">
+          <Key size={26} color="var(--accent-blue, #0056A3)" />
+        </div>
         <div className="join-form-wrapper">
           <h3 className="join-title">Join Project via Team Code</h3>
           <p className="join-desc">
@@ -109,16 +130,28 @@ function ProjectsHub({ onSelectProject }) {
               className="join-input"
               maxLength={12}
             />
-            <button type="submit" className="join-submit-btn" disabled={joinStatus?.loading}>
-              {joinStatus?.loading ? 'Joining...' : 'Enter Project ➔'}
+            <button
+              type="submit"
+              className="join-submit-btn"
+              disabled={joinStatus?.loading}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <span>{joinStatus?.loading ? 'Joining...' : 'Enter Project'}</span>
+              <ArrowRight size={14} />
             </button>
           </form>
 
           {joinStatus?.error && (
-            <div className="join-message error">⚠️ {joinStatus.error}</div>
+            <div className="join-message error" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <AlertTriangle size={14} />
+              <span>{joinStatus.error}</span>
+            </div>
           )}
           {joinStatus?.message && (
-            <div className="join-message success">✓ {joinStatus.message}</div>
+            <div className="join-message success" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Check size={14} />
+              <span>{joinStatus.message}</span>
+            </div>
           )}
         </div>
       </div>
@@ -133,7 +166,9 @@ function ProjectsHub({ onSelectProject }) {
           <div className="hub-loading">Loading projects...</div>
         ) : projects.length === 0 ? (
           <div className="hub-empty-state">
-            <div className="empty-icon">📁</div>
+            <div className="empty-icon">
+              <Folder size={40} color="var(--accent-black)" />
+            </div>
             <h4>No active projects found</h4>
             <p>
               {isAdmin
@@ -141,8 +176,13 @@ function ProjectsHub({ onSelectProject }) {
                 : "You haven't joined any project yet. Ask your project admin for a 6-character team code!"}
             </p>
             {isAdmin && (
-              <button className="hub-action-btn primary" onClick={() => setModalOpen(true)}>
-                Create First Project
+              <button
+                className="hub-action-btn primary"
+                onClick={() => setModalOpen(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Plus size={15} />
+                <span>Create First Project</span>
               </button>
             )}
           </div>
@@ -170,12 +210,16 @@ function ProjectsHub({ onSelectProject }) {
                       <span className="code-label">TEAM CODE:</span>
                       <span className="code-value">{proj.code}</span>
                       <button className="copy-icon-btn" title="Copy Team Code">
-                        {copiedCode === proj.code ? '✓' : '📋'}
+                        {copiedCode === proj.code ? <Check size={11} color="#16a34a" /> : <Copy size={11} />}
                       </button>
                     </div>
 
-                    <span className={`project-role-tag ${isOwner ? 'owner' : 'member'}`}>
-                      {isOwner ? '👑 LEAD / OWNER' : '⚡ MEMBER'}
+                    <span
+                      className={`project-role-tag ${isOwner ? 'owner' : 'member'}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '3px' }}
+                    >
+                      {isOwner ? <ShieldCheck size={11} /> : <Zap size={11} />}
+                      <span>{isOwner ? 'LEAD / OWNER' : 'MEMBER'}</span>
                     </span>
                   </div>
 
@@ -188,7 +232,7 @@ function ProjectsHub({ onSelectProject }) {
                   {/* GitHub Repo */}
                   {proj.githubRepo && (
                     <div className="project-repo-link" onClick={(e) => e.stopPropagation()}>
-                      <span className="repo-icon">🐙</span>
+                      <GitBranch size={13} className="repo-icon" />
                       <a href={proj.githubRepo} target="_blank" rel="noreferrer">
                         {proj.githubRepo.replace(/^https?:\/\/github.com\//, '')}
                       </a>
@@ -238,8 +282,10 @@ function ProjectsHub({ onSelectProject }) {
                         selectProject(proj);
                         if (onSelectProject) onSelectProject('board');
                       }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                     >
-                      {isCurrent ? 'Active Board ➔' : 'Open Board ➔'}
+                      <span>{isCurrent ? 'Active Board' : 'Open Board'}</span>
+                      <ArrowRight size={13} />
                     </button>
                   </div>
                 </div>
@@ -254,14 +300,17 @@ function ProjectsHub({ onSelectProject }) {
         <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
           <div className="modal-content hub-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">✨ Create New Project Workspace</h3>
+              <h3 className="modal-title">Create New Project Workspace</h3>
               <button className="modal-close-btn" onClick={() => setModalOpen(false)}>
-                ✕
+                <X size={15} />
               </button>
             </div>
 
             {createError && (
-              <div className="modal-error-banner">⚠️ {createError}</div>
+              <div className="modal-error-banner" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <AlertTriangle size={15} />
+                <span>{createError}</span>
+              </div>
             )}
 
             <form onSubmit={handleCreateProject} className="modal-form">
@@ -310,8 +359,13 @@ function ProjectsHub({ onSelectProject }) {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="modal-submit-btn">
-                  Generate Project & Code ➔
+                <button
+                  type="submit"
+                  className="modal-submit-btn"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <span>Generate Project & Code</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </form>
@@ -323,4 +377,3 @@ function ProjectsHub({ onSelectProject }) {
 }
 
 export default ProjectsHub;
-

@@ -3,6 +3,18 @@ import { Draggable } from '@hello-pangea/dnd';
 import { useTaskContext } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
+import {
+  Copy,
+  Check,
+  Zap,
+  CheckCircle2,
+  Edit3,
+  Trash2,
+  GitCommit,
+  Paperclip,
+  Calendar,
+  Clock
+} from 'lucide-react';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -71,13 +83,11 @@ function TaskCard({ task, index, onEdit, onView }) {
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.25rem'
+                gap: '0.3rem'
               }}
             >
               <span>{task.taskId || 'TASK'}</span>
-              <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>
-                {copiedId ? '✓' : '📋'}
-              </span>
+              {copiedId ? <Check size={11} color="#4ade80" /> : <Copy size={11} style={{ opacity: 0.8 }} />}
             </button>
 
             {/* Commit-gated indicator or Start button */}
@@ -94,10 +104,14 @@ function TaskCard({ task, index, onEdit, onView }) {
                   fontWeight: '800',
                   padding: '0.15rem 0.5rem',
                   cursor: 'pointer',
-                  boxShadow: '1.5px 1.5px 0 var(--accent-black, #1D1D1D)'
+                  boxShadow: '1.5px 1.5px 0 var(--accent-black, #1D1D1D)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
                 }}
               >
-                ⚡ Start Work
+                <Zap size={11} />
+                <span>Start Work</span>
               </button>
             )}
 
@@ -109,10 +123,14 @@ function TaskCard({ task, index, onEdit, onView }) {
                   background: '#dcfce7',
                   color: '#166534',
                   border: '1px solid #16a34a',
-                  padding: '0.1rem 0.4rem'
+                  padding: '0.1rem 0.4rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
                 }}
               >
-                ✓ Git Verified
+                <CheckCircle2 size={11} color="#16a34a" />
+                <span>Git Verified</span>
               </span>
             )}
           </div>
@@ -127,7 +145,7 @@ function TaskCard({ task, index, onEdit, onView }) {
                 {task.category}
               </span>
             </div>
-            <div className="task-actions">
+            <div className="task-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <button
                 className="task-action-btn edit"
                 id={`edit-task-${task.id}`}
@@ -137,8 +155,9 @@ function TaskCard({ task, index, onEdit, onView }) {
                 }}
                 title="Edit task"
                 aria-label="Edit task"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                ✏️
+                <Edit3 size={12} />
               </button>
               {canDelete && (
                 <button
@@ -150,8 +169,9 @@ function TaskCard({ task, index, onEdit, onView }) {
                   }}
                   title="Delete task (Admin only)"
                   aria-label="Delete task"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  🗑
+                  <Trash2 size={12} />
                 </button>
               )}
             </div>
@@ -191,8 +211,9 @@ function TaskCard({ task, index, onEdit, onView }) {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '800', color: '#166534' }}>
-                  🐙 #{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'}
+                <span style={{ fontWeight: '800', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <GitCommit size={12} />
+                  <span>#{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'}</span>
                 </span>
                 <span style={{ color: '#4b5563', fontSize: '0.68rem' }}>
                   by @{task.commitInfo.author || 'committer'}
@@ -234,21 +255,24 @@ function TaskCard({ task, index, onEdit, onView }) {
                 href={task.attachment}
                 download={task.attachmentName || 'download'}
                 className="task-attachment-pill"
-                style={{ textDecoration: 'none', color: 'inherit', marginLeft: '0.25rem', fontSize: '0.75rem' }}
+                style={{ textDecoration: 'none', color: 'inherit', marginLeft: '0.25rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                 onClick={(e) => e.stopPropagation()}
               >
-                📎 {task.attachmentName || 'Attachment'}
+                <Paperclip size={11} />
+                <span>{task.attachmentName || 'Attachment'}</span>
               </a>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
               {task.dueDate && (
-                <span className={`task-date ${isOverdue ? 'overdue-text' : ''}`}>
-                  🎯 Due: {formatDate(task.dueDate)}
+                <span className={`task-date ${isOverdue ? 'overdue-text' : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Calendar size={11} />
+                  <span>Due: {formatDate(task.dueDate)}</span>
                 </span>
               )}
               {task.createdAt && (
-                <span className="task-date">
-                  📅 {formatDate(task.createdAt)}
+                <span className="task-date" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Clock size={11} />
+                  <span>{formatDate(task.createdAt)}</span>
                 </span>
               )}
             </div>

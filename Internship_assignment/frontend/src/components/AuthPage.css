@@ -93,6 +93,7 @@
   font-weight: 700;
   font-size: 0.85rem;
   margin-bottom: 1.25rem;
+  box-shadow: 3px 3px 0 var(--accent-black, #1D1D1D);
 }
 
 .auth-form {
@@ -136,6 +137,23 @@
 .auth-input:focus {
   border-color: var(--accent-blue, #0056A3);
   box-shadow: 4px 4px 0 var(--accent-blue, #0056A3);
+}
+
+/* Error highlighting on inputs */
+.auth-input.input-error {
+  border-color: var(--accent-red, #E1251B) !important;
+  box-shadow: 3px 3px 0 var(--accent-red, #E1251B) !important;
+  background-color: #fffbfb !important;
+}
+
+.field-error-text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent-red, #E1251B);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
 }
 
 /* Role Selector Options */

@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
+import {
+  FolderGit2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  LayoutDashboard,
+  GitCommit,
+  User,
+  ShieldCheck,
+  Zap,
+  LogOut,
+  FolderKanban
+} from 'lucide-react';
 import './Navbar.css';
 
 function Navbar({ activeTab, setActiveTab }) {
@@ -33,7 +46,7 @@ function Navbar({ activeTab, setActiveTab }) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             title="Switch Active Project"
           >
-            <span className="project-icon">📂</span>
+            <FolderKanban size={15} className="project-icon" />
             <div className="project-info">
               <span className="project-label">PROJECT:</span>
               <span className="project-current-name">
@@ -43,7 +56,9 @@ function Navbar({ activeTab, setActiveTab }) {
             {currentProject && (
               <span className="project-code-badge">{currentProject.code}</span>
             )}
-            <span className="dropdown-arrow">{dropdownOpen ? '▲' : '▼'}</span>
+            <span className="dropdown-arrow">
+              {dropdownOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </span>
           </button>
 
           {dropdownOpen && (
@@ -73,8 +88,10 @@ function Navbar({ activeTab, setActiveTab }) {
                     setActiveTab('projects');
                     setDropdownOpen(false);
                   }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                 >
-                  ➕ Manage & Join Projects
+                  <Plus size={13} />
+                  <span>Manage & Join Projects</span>
                 </button>
               </div>
             </div>
@@ -88,7 +105,7 @@ function Navbar({ activeTab, setActiveTab }) {
           className={`nav-tab-btn ${activeTab === 'board' ? 'active' : ''}`}
           onClick={() => setActiveTab('board')}
         >
-          <span className="tab-icon">📋</span>
+          <LayoutDashboard size={15} className="tab-icon" />
           <span className="tab-text">Task Board</span>
         </button>
 
@@ -96,7 +113,7 @@ function Navbar({ activeTab, setActiveTab }) {
           className={`nav-tab-btn ${activeTab === 'projects' ? 'active' : ''}`}
           onClick={() => setActiveTab('projects')}
         >
-          <span className="tab-icon">🚀</span>
+          <FolderGit2 size={15} className="tab-icon" />
           <span className="tab-text">Projects Hub</span>
           <span className="tab-badge">{projects.length}</span>
         </button>
@@ -105,7 +122,7 @@ function Navbar({ activeTab, setActiveTab }) {
           className={`nav-tab-btn ${activeTab === 'git' ? 'active' : ''}`}
           onClick={() => setActiveTab('git')}
         >
-          <span className="tab-icon">🐙</span>
+          <GitCommit size={15} className="tab-icon" />
           <span className="tab-text">Git Automation</span>
         </button>
 
@@ -113,7 +130,7 @@ function Navbar({ activeTab, setActiveTab }) {
           className={`nav-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => setActiveTab('profile')}
         >
-          <span className="tab-icon">👤</span>
+          <User size={15} className="tab-icon" />
           <span className="tab-text">Profile</span>
         </button>
       </nav>
@@ -131,14 +148,16 @@ function Navbar({ activeTab, setActiveTab }) {
           </div>
           <div className="user-meta">
             <span className="user-name">{user?.username}</span>
-            <span className={`role-badge ${isAdmin ? 'admin' : 'member'}`}>
-              {isAdmin ? '🛡️ ADMIN' : '⚡ MEMBER'}
+            <span className={`role-badge ${isAdmin ? 'admin' : 'member'}`} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {isAdmin ? <ShieldCheck size={11} /> : <Zap size={11} />}
+              <span>{isAdmin ? 'ADMIN' : 'MEMBER'}</span>
             </span>
           </div>
         </div>
 
-        <button className="logout-btn" onClick={logout} title="Sign Out">
-          Exit ➔
+        <button className="logout-btn" onClick={logout} title="Sign Out" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <span>Exit</span>
+          <LogOut size={13} />
         </button>
       </div>
     </header>
@@ -146,4 +165,3 @@ function Navbar({ activeTab, setActiveTab }) {
 }
 
 export default Navbar;
-

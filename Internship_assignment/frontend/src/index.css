@@ -800,3 +800,22 @@ body {
 *::-webkit-scrollbar { width: 12px; height: 12px; }
 *::-webkit-scrollbar-track { background: var(--app-bg); border-left: 2px solid var(--accent-black); }
 *::-webkit-scrollbar-thumb { background: var(--accent-black); border: 2px solid var(--app-bg); }
+
+
+/* Validation & Error Styles */
+.form-input.input-error,
+.auth-input.input-error {
+  border-color: var(--accent-red) !important;
+  box-shadow: 3px 3px 0 var(--accent-red) !important;
+  background-color: #fffbfb !important;
+}
+
+.field-error-text {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--accent-red);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}

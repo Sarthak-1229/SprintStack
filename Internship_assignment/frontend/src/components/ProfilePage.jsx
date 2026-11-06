@@ -2,6 +2,21 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTaskContext } from '../context/TaskContext';
 import { useProject } from '../context/ProjectContext';
+import {
+  ShieldCheck,
+  Zap,
+  GraduationCap,
+  Briefcase,
+  Edit3,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  Save,
+  ExternalLink,
+  Plus,
+  Lock,
+  Sparkles
+} from 'lucide-react';
 import './ProfilePage.css';
 
 function ProfilePage() {
@@ -79,17 +94,19 @@ function ProfilePage() {
           </div>
           <div className="profile-identity">
             <div className="profile-badge-row">
-              <span className={`profile-role-tag ${isAdmin ? 'admin' : 'member'}`}>
-                {isAdmin ? '🛡️ SYSTEM ADMIN / PROJECT LEAD' : '⚡ TEAM MEMBER / DEVELOPER'}
+              <span className={`profile-role-tag ${isAdmin ? 'admin' : 'member'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                {isAdmin ? <ShieldCheck size={11} /> : <Zap size={11} />}
+                <span>{isAdmin ? 'SYSTEM ADMIN / PROJECT LEAD' : 'TEAM MEMBER / DEVELOPER'}</span>
               </span>
-              <span className="profile-type-tag">
-                {userType === 'student' ? '🎓 Academic Student' : '💼 Working Professional'}
+              <span className="profile-type-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                {userType === 'student' ? <GraduationCap size={11} /> : <Briefcase size={11} />}
+                <span>{userType === 'student' ? 'Academic Student' : 'Working Professional'}</span>
               </span>
             </div>
             <h2 className="profile-name">{fullName || user?.username}</h2>
             <span className="profile-handle">@{user?.username} &bull; {user?.email}</span>
             <p className="profile-bio-text">
-              {bio || 'No developer bio provided yet. Click "Edit Profile" below to add your background!'}
+              {bio || 'No developer bio provided yet. Click "Edit Profile" to add your technical background!'}
             </p>
           </div>
         </div>
@@ -98,17 +115,25 @@ function ProfilePage() {
           <button
             className="profile-edit-toggle-btn"
             onClick={() => setIsEditing(!isEditing)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            {isEditing ? '✕ Cancel Editing' : '✏️ Edit Profile'}
+            {isEditing ? <X size={14} /> : <Edit3 size={14} />}
+            <span>{isEditing ? 'Cancel Editing' : 'Edit Profile'}</span>
           </button>
         </div>
       </div>
 
       {saveStatus?.message && (
-        <div className="profile-alert success">✓ {saveStatus.message}</div>
+        <div className="profile-alert success" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <CheckCircle2 size={16} />
+          <span>{saveStatus.message}</span>
+        </div>
       )}
       {saveStatus?.error && (
-        <div className="profile-alert error">⚠️ {saveStatus.error}</div>
+        <div className="profile-alert error" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <AlertTriangle size={16} />
+          <span>{saveStatus.error}</span>
+        </div>
       )}
 
       {/* Metrics Row */}
@@ -142,8 +167,9 @@ function ProfilePage() {
       <div className="profile-body-grid">
         {/* Left: Background Details */}
         <div className="profile-details-card">
-          <h3 className="section-heading">
-            {userType === 'student' ? '🎓 Academic / Student Profile' : '💼 Employment Profile'}
+          <h3 className="section-heading" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {userType === 'student' ? <GraduationCap size={18} /> : <Briefcase size={18} />}
+            <span>{userType === 'student' ? 'Academic / Student Profile' : 'Employment Profile'}</span>
           </h3>
 
           {!isEditing ? (
@@ -178,8 +204,10 @@ function ProfilePage() {
                       target="_blank"
                       rel="noreferrer"
                       className="github-profile-link"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                     >
-                      github.com/{githubUsername} ↗
+                      <span>github.com/{githubUsername}</span>
+                      <ExternalLink size={12} />
                     </a>
                   ) : (
                     'Not linked'
@@ -213,15 +241,19 @@ function ProfilePage() {
                     type="button"
                     className={`track-btn ${userType === 'student' ? 'active' : ''}`}
                     onClick={() => setUserType('student')}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                   >
-                    🎓 Student
+                    <GraduationCap size={14} />
+                    <span>Student</span>
                   </button>
                   <button
                     type="button"
                     className={`track-btn ${userType === 'professional' ? 'active' : ''}`}
                     onClick={() => setUserType('professional')}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                   >
-                    💼 Working Professional
+                    <Briefcase size={14} />
+                    <span>Working Professional</span>
                   </button>
                 </div>
               </div>
@@ -312,7 +344,7 @@ function ProfilePage() {
                         className="skill-remove-btn"
                         onClick={() => handleRemoveSkill(s)}
                       >
-                        ✕
+                        <X size={11} />
                       </button>
                     </span>
                   ))}
@@ -329,8 +361,10 @@ function ProfilePage() {
                     type="button"
                     onClick={handleAddSkill}
                     className="add-skill-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
                   >
-                    + Add
+                    <Plus size={13} />
+                    <span>Add</span>
                   </button>
                 </div>
               </div>
@@ -347,8 +381,10 @@ function ProfilePage() {
                   type="submit"
                   className="btn-save"
                   disabled={saveStatus?.loading}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 >
-                  {saveStatus?.loading ? 'Saving Changes...' : '💾 Save Profile Updates'}
+                  <Save size={13} />
+                  <span>{saveStatus?.loading ? 'Saving Changes...' : 'Save Profile Updates'}</span>
                 </button>
               </div>
             </form>
@@ -357,7 +393,10 @@ function ProfilePage() {
 
         {/* Right: Security & Account Info */}
         <div className="profile-security-card">
-          <h3 className="section-heading">🛡️ Account & Access Info</h3>
+          <h3 className="section-heading" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Lock size={16} />
+            <span>Account & Access Info</span>
+          </h3>
           <div className="security-info-list">
             <div className="security-item">
               <span className="sec-label">Role Privilege:</span>
@@ -373,12 +412,15 @@ function ProfilePage() {
 
             <div className="security-item">
               <span className="sec-label">Active Session:</span>
-              <span className="sec-value active-dot">● Verified JWT Bearer</span>
+              <span className="sec-value active-dot">Verified JWT Bearer</span>
             </div>
           </div>
 
           <div className="security-tip-box">
-            <span className="tip-title">⚡ Traceability Note:</span>
+            <span className="tip-title" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Zap size={13} />
+              <span>Traceability Note:</span>
+            </span>
             <p className="tip-text">
               Every commit you push with a Task ID (e.g., <code>TASK-101</code>) attributes your operator username directly to the task audit logs.
             </p>
@@ -390,4 +432,3 @@ function ProfilePage() {
 }
 
 export default ProfilePage;
-
