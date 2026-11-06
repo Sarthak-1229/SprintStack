@@ -440,3 +440,42 @@
   font-weight: 800;
 }
 
+
+/* Avatar Upload & Quick Action Styles */
+.hero-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.avatar-quick-upload-btn {
+  position: absolute;
+  bottom: 0px;
+  right: -4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-yellow, #F0D700);
+  border: 2px solid var(--accent-black, #1D1D1D);
+  box-shadow: 2px 2px 0 var(--accent-black, #1D1D1D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent-black, #1D1D1D);
+  transition: transform 0.1s ease;
+  z-index: 10;
+}
+
+.avatar-quick-upload-btn:hover {
+  transform: scale(1.1);
+  background: #ffffff;
+}
+
+.preset-avatar-chip {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.preset-avatar-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 1.5px 1.5px 0 var(--accent-black, #1D1D1D);
+}

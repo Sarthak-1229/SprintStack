@@ -1,3 +1,4 @@
+import UserAvatar from './UserAvatar';
 import React, { useState } from 'react';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
@@ -257,14 +258,10 @@ function ProjectsHub({ onSelectProject }) {
                   <div className="project-card-footer">
                     <div className="team-avatars">
                       <span className="team-label">Team:</span>
-                      <div className="avatars-row">
+                      <div className="avatars-row" style={{ display: 'flex', alignItems: 'center' }}>
                         {proj.members && proj.members.slice(0, 4).map((m, idx) => (
-                          <div
-                            key={idx}
-                            className="member-avatar-chip"
-                            title={`${m.username} (${m.role})`}
-                          >
-                            {m.username.charAt(0).toUpperCase()}
+                          <div key={idx} style={{ marginLeft: idx > 0 ? '-6px' : 0 }} title={`${m.username} (${m.role})`}>
+                            <UserAvatar username={m.username} avatarUrl={m.avatar} size={24} />
                           </div>
                         ))}
                         {proj.members && proj.members.length > 4 && (

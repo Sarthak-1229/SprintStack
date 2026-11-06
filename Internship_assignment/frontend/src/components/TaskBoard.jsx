@@ -1,3 +1,4 @@
+import UserAvatar from './UserAvatar';
 import React, { useState } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { useTaskContext } from '../context/TaskContext';
@@ -258,25 +259,8 @@ function TaskBoard({ onNavigateTab }) {
             </span>
             <div style={{ display: 'flex' }}>
               {currentProject.members && currentProject.members.slice(0, 5).map((m, idx) => (
-                <div
-                  key={idx}
-                  title={`@${m.username} (${m.role})`}
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: 'var(--accent-black)',
-                    color: '#ffffff',
-                    border: '1.5px solid #ffffff',
-                    fontSize: '0.7rem',
-                    fontWeight: '800',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: idx > 0 ? '-6px' : 0
-                  }}
-                >
-                  {m.username.charAt(0).toUpperCase()}
+                <div key={idx} style={{ marginLeft: idx > 0 ? '-6px' : 0 }} title={`@${m.username} (${m.role})`}>
+                  <UserAvatar username={m.username} avatarUrl={m.avatar} size={24} />
                 </div>
               ))}
             </div>
@@ -538,22 +522,7 @@ function TaskBoard({ onNavigateTab }) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div
-                        style={{
-                          width: '34px',
-                          height: '34px',
-                          borderRadius: '50%',
-                          background: 'var(--accent-black)',
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '900',
-                          fontSize: '0.9rem'
-                        }}
-                      >
-                        {m.username.charAt(0).toUpperCase()}
-                      </div>
+                      <UserAvatar username={m.username} avatarUrl={m.avatar} size={36} />
                       <div>
                         <div style={{ fontWeight: '900', fontSize: '0.9rem', color: 'var(--accent-black)' }}>
                           @{m.username}

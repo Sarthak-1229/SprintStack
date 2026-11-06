@@ -14,6 +14,7 @@ import {
   LogOut,
   FolderKanban
 } from 'lucide-react';
+import UserAvatar from './UserAvatar';
 import './Navbar.css';
 
 function Navbar({ activeTab, setActiveTab }) {
@@ -28,11 +29,7 @@ function Navbar({ activeTab, setActiveTab }) {
       {/* Brand & Project Selector */}
       <div className="navbar-brand-section">
         <div className="navbar-logo" onClick={() => setActiveTab('board')} style={{ cursor: 'pointer' }}>
-          <div className="logo-geometric-block">
-            <span className="logo-square red"></span>
-            <span className="logo-circle yellow"></span>
-            <span className="logo-triangle blue"></span>
-          </div>
+          <img src="/logo.jpg" alt="SprintStack Logo" className="navbar-brand-logo" />
           <div className="logo-text-group">
             <h1 className="logo-title">SprintStack</h1>
             <span className="logo-tagline">DevOps Workflow</span>
@@ -143,8 +140,8 @@ function Navbar({ activeTab, setActiveTab }) {
           title="Click to view profile"
           style={{ cursor: 'pointer' }}
         >
-          <div className="user-avatar-circle">
-            {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+          <div className="user-avatar-circle" style={{ border: 'none', background: 'transparent' }}>
+            <UserAvatar username={user?.username} avatarUrl={user?.avatar} size={28} showBorder={true} />
           </div>
           <div className="user-meta">
             <span className="user-name">{user?.username}</span>

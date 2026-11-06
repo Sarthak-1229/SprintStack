@@ -13,8 +13,11 @@ import {
   GitCommit,
   Paperclip,
   Calendar,
-  Clock
+  Clock,
+  Settings,
+  CircleDashed
 } from 'lucide-react';
+import UserAvatar from './UserAvatar';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -24,7 +27,7 @@ function formatDate(iso) {
 
 function TaskCard({ task, index, onEdit, onView }) {
   const { deleteTask, moveTask } = useTaskContext();
-  const { user } = useAuth();
+  const { user, getUserAvatar } = useAuth();
   const { currentProject } = useProject();
   const [copiedId, setCopiedId] = useState(false);
 
@@ -53,6 +56,11 @@ function TaskCard({ task, index, onEdit, onView }) {
     moveTask(task.id, 'In Progress');
   };
 
+  const assigneeAvatar = getUserAvatar(task.assignee);
+  const wheelImage = isImage
+    ? task.attachment
+    : (assigneeAvatar || (user?.username === task.assignee ? user?.avatar : ''));
+
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -66,6 +74,37 @@ function TaskCard({ task, index, onEdit, onView }) {
           onClick={onView}
           style={{ cursor: 'pointer', ...provided.draggableProps.style }}
         >
+          {/* Right Rolling Wheel Animation (All 3 Sections) */}
+          <div
+            className={`task-card-wheel-wrap wheel-${task.status.toLowerCase().replace(/\s+/g, '-')}`}
+            title={`Section: ${task.status} • Rolling wheel animation`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="task-card-rolling-wheel">
+              <div className="wheel-spokes-cross">
+                <div className="spoke spoke-1" />
+                <div className="spoke spoke-2" />
+                <div className="spoke spoke-3" />
+                <div className="spoke spoke-4" />
+              </div>
+              <div className="wheel-hub-content">
+                {wheelImage ? (
+                  <img src={wheelImage} alt="wheel-hub" className="wheel-image-elem" />
+                ) : (
+                  <div className="wheel-badge-elem">
+                    {isDone ? (
+                      <CheckCircle2 size={15} color="#16a34a" />
+                    ) : isToDo ? (
+                      <CircleDashed size={15} color="var(--accent-blue)" />
+                    ) : (
+                      <Settings size={15} color="var(--accent-black)" />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Top Identifier Row */}
           <div className="task-id-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
             <button
@@ -231,23 +270,21 @@ function TaskCard({ task, index, onEdit, onView }) {
           <div className="task-footer" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             {task.assignee && (
               <div
-                className="task-assignee-avatar"
-                title={`Assigned to ${task.assignee}`}
-                style={{
-                  border: '2px solid var(--accent-black)',
-                  width: '26px',
-                  height: '26px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  background: 'var(--accent-black)',
-                  color: '#ffffff',
-                  fontWeight: 'bold',
-                  fontSize: '0.8rem'
-                }}
+                className="task-assignee-strip"
+                title={`Assigned to @${task.assignee}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
               >
-                {task.assignee.charAt(0).toUpperCase()}
+                <UserAvatar username={task.assignee} size={24} />
+                <span
+                  className="task-assignee-name"
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '800',
+                    color: 'var(--accent-black, #1D1D1D)'
+                  }}
+                >
+                  @{task.assignee}
+                </span>
               </div>
             )}
             {task.attachment && !isImage && (

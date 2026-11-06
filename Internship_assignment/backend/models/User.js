@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
       default: 'member' 
     },
     // User Profile Information
+    avatar: { type: String, default: '' },
     fullName: { type: String, default: '' },
     userType: { 
       type: String, 

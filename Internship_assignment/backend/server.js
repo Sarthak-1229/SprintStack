@@ -81,7 +81,8 @@ app.post("/api/register", async (req, res) => {
       yearOrExperience = "",
       bio = "",
       githubUsername = "",
-      skills = []
+      skills = [],
+      avatar = ""
     } = req.body;
 
     if (!username || !email || !password) {
@@ -110,7 +111,8 @@ app.post("/api/register", async (req, res) => {
       yearOrExperience,
       bio,
       githubUsername,
-      skills: Array.isArray(skills) ? skills : []
+      skills: Array.isArray(skills) ? skills : [],
+      avatar: avatar || ""
     });
 
     await user.save();
@@ -135,7 +137,8 @@ app.post("/api/register", async (req, res) => {
         yearOrExperience: user.yearOrExperience,
         bio: user.bio,
         githubUsername: user.githubUsername,
-        skills: user.skills
+        skills: user.skills,
+        avatar: user.avatar || ""
       }
     });
   } catch (error) {
@@ -188,7 +191,8 @@ app.post("/api/login", async (req, res) => {
         yearOrExperience: user.yearOrExperience,
         bio: user.bio,
         githubUsername: user.githubUsername,
-        skills: user.skills
+        skills: user.skills,
+        avatar: user.avatar || ""
       }
     });
   } catch (error) {
@@ -233,7 +237,8 @@ app.put("/api/profile", requireAuth, async (req, res) => {
       yearOrExperience,
       bio,
       githubUsername,
-      skills
+      skills,
+      avatar
     } = req.body;
 
     const user = await User.findById(req.user.id);
@@ -247,6 +252,10 @@ app.put("/api/profile", requireAuth, async (req, res) => {
     if (bio !== undefined) user.bio = bio;
     if (githubUsername !== undefined) user.githubUsername = githubUsername;
     if (skills !== undefined) user.skills = Array.isArray(skills) ? skills : [];
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+      await Project.updateMany({ "members.username": user.username }, { $set: { "members.$.avatar": avatar } });
+    }
 
     await user.save();
 
@@ -264,7 +273,8 @@ app.put("/api/profile", requireAuth, async (req, res) => {
         yearOrExperience: user.yearOrExperience,
         bio: user.bio,
         githubUsername: user.githubUsername,
-        skills: user.skills
+        skills: user.skills,
+        avatar: user.avatar || ""
       }
     });
   } catch (error) {
@@ -276,7 +286,7 @@ app.put("/api/profile", requireAuth, async (req, res) => {
 // Get Users List (for task assignment)
 app.get("/api/users", requireAuth, async (req, res) => {
   try {
-    const users = await User.find({}, "username email role fullName userType");
+    const users = await User.find({}, "username email role fullName userType avatar");
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Server error fetching users" });
@@ -849,7 +859,8 @@ async function seedInitialData() {
         yearOrExperience: "Final Year (TY)",
         bio: "Project Lead & Full Stack Architect",
         githubUsername: "sarthak-dev",
-        skills: ["React", "NodeJS", "Express", "MongoDB", "Git", "Docker"]
+        skills: ["React", "NodeJS", "Express", "MongoDB", "Git", "Docker"],
+        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sarthak"
       }).save();
       console.log("✓ Admin user seeded (sarthak / sarthak_1204)");
     } else {
@@ -873,7 +884,8 @@ async function seedInitialData() {
         yearOrExperience: "TY (Third Year)",
         bio: "Frontend Specialist & React Enthusiast",
         githubUsername: "alex-dev-code",
-        skills: ["React", "CSS", "UI/UX", "JavaScript"]
+        skills: ["React", "CSS", "UI/UX", "JavaScript"],
+        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=alex"
       }).save();
       console.log("✓ Team member user seeded (alex_dev / password123)");
     }
@@ -894,12 +906,14 @@ async function seedInitialData() {
             user: admin._id,
             username: admin.username,
             role: "admin",
+            avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sarthak",
             joinedAt: new Date()
           },
           {
             user: member._id,
             username: member.username,
             role: "member",
+            avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=alex",
             joinedAt: new Date()
           }
         ]

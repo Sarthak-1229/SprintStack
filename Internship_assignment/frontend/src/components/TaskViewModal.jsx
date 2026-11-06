@@ -9,6 +9,7 @@ import {
   User,
   GitCommit
 } from 'lucide-react';
+import UserAvatar from './UserAvatar';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -79,25 +80,7 @@ function TaskViewModal({ task, onClose }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {task.assignee ? (
                   <>
-                    <div 
-                      className="task-assignee-avatar" 
-                      style={{ 
-                        position: 'relative', right: 'auto', bottom: 'auto',
-                        border: '2px solid var(--accent-black)',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '50%',
-                        background: 'var(--accent-black)',
-                        color: '#ffffff',
-                        fontWeight: 'bold',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      {task.assignee.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar username={task.assignee} size={28} />
                     <strong>@{task.assignee}</strong>
                   </>
                 ) : (
@@ -105,7 +88,7 @@ function TaskViewModal({ task, onClose }) {
                 )}
               </div>
             </div>
-            
+
             <div style={{ flex: 1 }}>
               <h4 style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', fontSize: '0.8rem' }}>Timeline</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -128,28 +111,41 @@ function TaskViewModal({ task, onClose }) {
 
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', fontSize: '0.8rem' }}>Attachment</h4>
-            {isImage ? (
-              <a href={task.attachment} target="_blank" rel="noreferrer">
-                <img src={task.attachment} alt="Attachment Preview" style={{ maxWidth: '100%', maxHeight: '300px', border: '2px solid var(--border-color)' }} />
-              </a>
-            ) : task.attachment ? (
-              <a 
-                href={task.attachment} 
-                download={task.attachmentName || 'downloaded_file'} 
-                className="file-preview-chip" 
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none' }}
-              >
-                <Paperclip size={13} />
-                <span>{task.attachmentName || 'Download File'}</span>
-              </a>
+            {task.attachment ? (
+              isImage ? (
+                <div>
+                  <img
+                    src={task.attachment}
+                    alt="Task attachment"
+                    style={{ maxWidth: '100%', maxHeight: '250px', border: '2px solid var(--border-color)', objectFit: 'contain' }}
+                  />
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <a
+                      href={task.attachment}
+                      download={task.attachmentName || 'attachment'}
+                      className="btn"
+                      style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      <Paperclip size={12} />
+                      <span>Download Image</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <a
+                  href={task.attachment}
+                  download={task.attachmentName || 'attachment'}
+                  className="btn"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
+                >
+                  <Paperclip size={14} />
+                  <span>Download {task.attachmentName || 'Attachment'}</span>
+                </a>
+              )
             ) : (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No attachments</span>
+              <span style={{ color: 'var(--text-muted)' }}>No file attached</span>
             )}
           </div>
-        </div>
-
-        <div className="modal-actions">
-          <button className="btn btn-primary" onClick={onClose} style={{ width: '100%' }}>Close Details</button>
         </div>
       </div>
     </div>

@@ -28,33 +28,13 @@
   user-select: none;
 }
 
-.logo-geometric-block {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.logo-square {
-  width: 14px;
-  height: 14px;
-  background: var(--accent-red, #E1251B);
-  border: 2px solid var(--accent-black, #1D1D1D);
-}
-
-.logo-circle {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent-yellow, #F0D700);
-  border: 2px solid var(--accent-black, #1D1D1D);
-}
-
-.logo-triangle {
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 14px solid var(--accent-blue, #0056A3);
+.navbar-brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 48px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  display: block;
 }
 
 .logo-title {

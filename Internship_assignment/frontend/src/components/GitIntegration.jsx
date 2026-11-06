@@ -1,3 +1,4 @@
+import UserAvatar from './UserAvatar';
 import React, { useState } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { useProject } from '../context/ProjectContext';
@@ -329,7 +330,7 @@ curl -s -X POST "${commitApiUrl}" \\
             {activeSetupTab === 'github' && (
               <div>
                 <div className="webhook-card-header">
-                  <ExternalLink size={22} color="var(--accent-blue, #0056A3)" className="webhook-icon" />
+                  <ExternalLink size={18} color="var(--accent-blue, #0056A3)" className="webhook-icon" />
                   <div>
                     <h4 className="webhook-card-title">Live GitHub Repository Webhook</h4>
                     <p className="webhook-card-desc">
@@ -348,22 +349,33 @@ curl -s -X POST "${commitApiUrl}" \\
                   <button
                     className="webhook-copy-btn"
                     onClick={copyWebhookUrl}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                   >
-                    {copiedWebhook ? <Check size={13} /> : <Copy size={13} />}
+                    {copiedWebhook ? <Check size={12} /> : <Copy size={12} />}
                     <span>{copiedWebhook ? 'Copied' : 'Copy URL'}</span>
                   </button>
                 </div>
 
-                <div className="webhook-instructions">
-                  <span className="instructions-title">GitHub Setup Instructions:</span>
-                  <ol className="instructions-list">
-                    <li>Go to your GitHub repo ➔ <strong>Settings</strong> ➔ <strong>Webhooks</strong> ➔ <strong>Add webhook</strong>.</li>
-                    <li>Paste the Webhook URL above into the <strong>Payload URL</strong> field.</li>
-                    <li>Set <strong>Content type</strong> to <code>application/json</code>.</li>
-                    <li>Under "Which events would you like to trigger this webhook?", select <strong>Just the push event</strong>.</li>
-                    <li>Click <strong>Add webhook</strong>. Pushing commits with <code>TASK-XXX</code> triggers live completion!</li>
-                  </ol>
+                <div className="webhook-instructions-compact">
+                  <span className="instructions-title">GitHub Setup:</span>
+                  <div className="instructions-grid-steps">
+                    <div className="inst-step-item">
+                      <span className="step-num">1</span>
+                      <span>Repo Settings ➔ Webhooks ➔ Add</span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">2</span>
+                      <span>Paste URL as <strong>Payload URL</strong></span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">3</span>
+                      <span>Type: <code>application/json</code></span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">4</span>
+                      <span>Push commits with <code>TASK-XXX</code></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -372,26 +384,27 @@ curl -s -X POST "${commitApiUrl}" \\
             {activeSetupTab === 'localhook' && (
               <div>
                 <div className="webhook-card-header">
-                  <TerminalIcon size={22} color="var(--accent-black)" className="webhook-icon" />
+                  <TerminalIcon size={18} color="var(--accent-black)" className="webhook-icon" />
                   <div>
                     <h4 className="webhook-card-title">Connect Real Local Git Commits</h4>
                     <p className="webhook-card-desc">
-                      Trigger task completion directly from your PC terminal when typing <code>git commit</code>!
+                      Trigger task completion directly from your PC terminal when typing <code>git commit</code>
                     </p>
                   </div>
                 </div>
 
-                <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                <div style={{ position: 'relative', marginBottom: '0.45rem' }}>
                   <pre
                     style={{
                       background: '#111827',
                       color: '#34d399',
-                      padding: '0.85rem',
+                      padding: '0.45rem 0.65rem',
                       fontFamily: 'monospace',
-                      fontSize: '0.72rem',
-                      border: '2px solid var(--accent-black)',
+                      fontSize: '0.68rem',
+                      lineHeight: '1.3',
+                      border: '1.5px solid var(--accent-black)',
                       overflowX: 'auto',
-                      maxHeight: '140px'
+                      maxHeight: '85px'
                     }}
                   >
                     {localHookCode}
@@ -401,28 +414,40 @@ curl -s -X POST "${commitApiUrl}" \\
                     onClick={copyLocalHook}
                     style={{
                       position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.72rem',
+                      top: '5px',
+                      right: '5px',
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.68rem',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      gap: '0.2rem'
                     }}
                   >
                     {copiedScript ? <Check size={11} /> : <Copy size={11} />}
-                    <span>{copiedScript ? 'Copied Hook' : 'Copy Hook Script'}</span>
+                    <span>{copiedScript ? 'Copied' : 'Copy Hook'}</span>
                   </button>
                 </div>
 
-                <div className="webhook-instructions">
-                  <span className="instructions-title">How to activate in your local repo:</span>
-                  <ol className="instructions-list">
-                    <li>Inside your project repository, open <code>.git/hooks/post-commit</code>.</li>
-                    <li>Paste the code above and save.</li>
-                    <li>Make it executable (Mac/Linux: <code>chmod +x .git/hooks/post-commit</code>).</li>
-                    <li>Now whenever you commit with <code>git commit -m "TASK-XXX: ..."</code>, SprintStack updates live!</li>
-                  </ol>
+                <div className="webhook-instructions-compact">
+                  <span className="instructions-title">Quick 4-Step Setup:</span>
+                  <div className="instructions-grid-steps">
+                    <div className="inst-step-item">
+                      <span className="step-num">1</span>
+                      <span>Open <code>.git/hooks/post-commit</code></span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">2</span>
+                      <span>Paste script & save</span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">3</span>
+                      <span>Run <code>chmod +x post-commit</code></span>
+                    </div>
+                    <div className="inst-step-item">
+                      <span className="step-num">4</span>
+                      <span>Commit: <code>git commit -m "TASK-XXX: ..."</code></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -431,7 +456,7 @@ curl -s -X POST "${commitApiUrl}" \\
             {activeSetupTab === 'curl' && (
               <div>
                 <div className="webhook-card-header">
-                  <Code2 size={22} color="var(--accent-red, #E1251B)" className="webhook-icon" />
+                  <Code2 size={18} color="var(--accent-red, #E1251B)" className="webhook-icon" />
                   <div>
                     <h4 className="webhook-card-title">One-Line cURL Test</h4>
                     <p className="webhook-card-desc">
@@ -440,16 +465,20 @@ curl -s -X POST "${commitApiUrl}" \\
                   </div>
                 </div>
 
-                <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                <div style={{ position: 'relative', marginBottom: '0.45rem' }}>
                   <pre
                     style={{
                       background: '#111827',
                       color: '#f9fafb',
-                      padding: '0.85rem',
+                      padding: '0.45rem 0.65rem',
                       fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      border: '2px solid var(--accent-black)',
-                      overflowX: 'auto'
+                      fontSize: '0.68rem',
+                      lineHeight: '1.3',
+                      border: '1.5px solid var(--accent-black)',
+                      overflowX: 'auto',
+                      maxHeight: '75px',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all'
                     }}
                   >
                     {curlTestSnippet}
@@ -459,18 +488,22 @@ curl -s -X POST "${commitApiUrl}" \\
                     onClick={copyCurl}
                     style={{
                       position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.72rem',
+                      top: '5px',
+                      right: '5px',
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.68rem',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      gap: '0.2rem'
                     }}
                   >
                     {copiedCurl ? <Check size={11} /> : <Copy size={11} />}
-                    <span>{copiedCurl ? 'Copied' : 'Copy Command'}</span>
+                    <span>{copiedCurl ? 'Copied' : 'Copy cURL'}</span>
                   </button>
+                </div>
+
+                <div className="curl-tip-badge">
+                  <span>💡 Run this in your command terminal to test task completion for <code>TASK-102</code> without configuring git hooks.</span>
                 </div>
               </div>
             )}
@@ -503,9 +536,7 @@ curl -s -X POST "${commitApiUrl}" \\
                   <div key={c.id || c._id} className="commit-item">
                     <div className="commit-header-row">
                       <div className="commit-author-group">
-                        <span className="commit-avatar">
-                          {c.author ? c.author.charAt(0).toUpperCase() : 'D'}
-                        </span>
+                        <UserAvatar username={c.author} size={24} />
                         <span className="commit-author-name">{c.author}</span>
                       </div>
 

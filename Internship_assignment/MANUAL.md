@@ -12,6 +12,8 @@
 - **Multi-Project Sessions**: Teams operate in isolated project workspaces joined via 6-character invitation codes.
 - **Role-Based Governance**: Clear segregation between **Project Admins** (Leads) and **Team Members** (Developers).
 - **Strict Client & Server Validation**: Robust validation preventing empty task creations, malformed logins, and invalid transitions.
+- **Instant Visual Identification**: Custom user profile pictures appear directly on Kanban task cards, navbar, and rosters, eliminating the need to repeatedly open cards to verify task allotment.
+- **Continuous Rolling Wheel Animation**: Interactive mechanical wheel animations on the right side of task cards across all three columns (To Do, In Progress, Done).
 
 ---
 
@@ -30,28 +32,30 @@
 | Complete Task via Git Commit | Yes | Yes |
 | Push via In-App Git Terminal | Yes | Yes |
 | Delete Tasks | Yes | — |
-| Customize Student / Professional Profile | Yes | Yes |
+| Set Profile Picture & Developer Track | Yes | Yes |
+| Right Rolling Wheel Visualization | Yes | Yes |
 
 ---
 
 ## 3. Step-by-Step Workflow Guide
 
-### Step 1: Account Creation & Sign In (Strict Validation)
+### Step 1: Account Creation & Sign In (Clean & Validated)
 1. Open the application at `http://localhost:3000`.
-2. **Sign In Validation Rules**:
+2. **Clean Interface**: The login screen is completely sanitized with demo boxes removed for clean production use.
+   > **Default Seeded Accounts (For Evaluation/Testing)**:
+   > - **Lead Admin**: `sarthak` / `sarthak_1204`
+   > - **Team Member**: `alex_dev` / `password123`
+3. **Sign In Validation Rules**:
    - **Identifier (Username or Email)**: Cannot be empty; must be at least 3 characters.
    - **Passcode**: Cannot be empty; must be at least 6 characters.
    - If submitted empty or invalid, the form displays field-level red outlines and an alert banner detailing the exact errors.
-3. **Register Account Validation Rules**:
+4. **Register Account Validation Rules**:
    - Choose your role: **Team Member** (Developer) or **Project Admin** (Lead).
    - **Username**: Minimum 3 characters; letters, numbers, and underscores only.
    - **Email**: Must conform to a valid email format (e.g., `user@domain.com`).
    - **Passcode**: Minimum 6 characters required.
    - Select your profile track (**Student** or **Working Professional**).
-4. Click **Create Account** to enter the workspace.
-   > **Quick Demo Logins:**
-   > - **Admin**: `sarthak` / `sarthak_1204`
-   > - **Member**: `alex_dev` / `password123`
+5. Click **Create Account** to enter the workspace.
 
 ---
 
@@ -82,11 +86,15 @@ Navigate to the **Task Board** tab:
    - Fill in Priority, Category, Due Date, and assign to a team member.
    - The system automatically issues a sequential identifier: `[TASK-101]`, `[TASK-102]`, etc.
 
-2. **Starting a Task (Developer)**:
+2. **Instant Assignee Identification on Cards**:
+   - Every task card prominently displays the assignee's **profile photo** and handle (`@username`) in the card footer.
+   - Team members instantly know who is allotted to which task without needing to click or expand the modal.
+
+3. **Starting a Task (Developer)**:
    - Click the **Start Work** button on any card in the **To Do** column (or drag it into **In Progress**).
    - The card status changes to **In Progress**.
 
-3. **The Commit-Gated "Done" Column (Strict Rule)**:
+4. **The Commit-Gated "Done" Column (Strict Rule)**:
    - **Try dragging a task directly into "Done"**: The action will be **blocked** immediately.
    - A high-contrast warning banner will appear:
      > *"Done status is commit-gated! Tasks can only be completed automatically via a Git commit containing the task ID (e.g. TASK-101)."*
@@ -98,59 +106,73 @@ Navigate to the **Task Board** tab:
 You have three distinct ways to trigger automated task completion:
 
 #### Method A: Using the In-App Git Terminal (Fastest for Demos & Testing)
-1. Go to the **Git Automation** tab.
-2. Under **Quick-link an Active Task**, select your task (e.g. `[TASK-101]`).
-3. The terminal command line automatically populates:
+1. Navigate to the **Git Automation** tab.
+2. Under **In-App Commit Dispatcher**:
+   - Select the target task from the dropdown (e.g., `TASK-102: Build Neo-brutalist Multi-Project Hub`).
+   - The commit message preview automatically formats as:
+     `TASK-102: <your work summary>`
+   - Click **Dispatch Commit & Advance Task**.
+3. The server validates the commit, appends it to the project commit history, and automatically transitions `TASK-102` to **Done** via WebSockets!
+
+#### Method B: GitHub Webhook (For Real Remote Repositories)
+1. On GitHub, go to your repository's **Settings ➔ Webhooks ➔ Add webhook**.
+2. Copy the **Webhook URL** provided in the SprintStack **Git Automation** tab:
+   `http://<your-server-ip>:5000/api/projects/<project-id>/webhook`
+3. Content Type: `application/json`.
+4. Whenever you run `git push origin main` on your local terminal with a commit like:
    ```bash
-   $ git commit -m "TASK-101: implemented sensor telemetry loop"
+   git commit -m "TASK-101: added commit parser webhook"
+   git push origin main
    ```
-4. Click **Push Commit ($ git push)**.
-5. **Instant Result**:
-   - The terminal logs `Commit accepted!`.
-   - The task board automatically moves `TASK-101` into the **Done** column.
-   - A green verified badge is attached to the card displaying `#<hash>` and the committer name.
-   - A celebratory banner appears across the board in real time.
+   SprintStack catches the payload and moves `TASK-101` to **Done**.
 
----
-
-#### Method B: Real GitHub Webhook (For Public Production Repos)
-1. In the **Git Automation** tab, copy the **Webhook URL**:
-   ```
-   http://<your-server-url>/api/projects/<projectId>/webhook
-   ```
-2. In your GitHub repository:
-   - Go to **Settings** ➔ **Webhooks** ➔ **Add webhook**.
-   - Paste the URL into **Payload URL**.
-   - Set **Content type** to `application/json`.
-   - Select **Just the push event**.
-   - Click **Add webhook**.
-3. Now, whenever developers push commits containing `TASK-XXX` to GitHub, SprintStack updates the board automatically!
-
----
-
-#### Method C: Local Git Post-Commit Hook (Real Terminal Commits on Your PC)
-If you are developing locally and want real `git commit` commands in your computer terminal to update SprintStack automatically:
-
-1. In your local Git repository folder on your machine, create or edit `.git/hooks/post-commit`:
-2. Add the following script:
-
-```bash
-#!/bin/sh
-# SprintStack Local Commit Hook
-COMMIT_MSG=$(git log -1 --pretty=%B)
-COMMIT_HASH=$(git log -1 --pretty=%h)
-AUTHOR=$(git log -1 --pretty=%an)
-
-curl -s -X POST http://localhost:5000/api/projects/<YOUR_PROJECT_ID>/commit \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <YOUR_JWT_TOKEN>" \
-  -d "{\"commitMessage\":\"$COMMIT_MSG\",\"commitHash\":\"$COMMIT_HASH\",\"author\":\"$AUTHOR\"}" > /dev/null
-```
-3. Whenever you run:
+#### Method C: Local Git Hook (`post-commit`)
+1. In your local Git repository folder, navigate to `.git/hooks/`.
+2. Create an executable file named `post-commit` (no extension).
+3. Copy the script snippet generated in SprintStack's **Git Automation ➔ Local Git Hook Setup**.
+4. Every local commit will automatically sync with SprintStack:
    ```bash
    git commit -m "TASK-101: completed flight calibration"
    ```
    SprintStack instantly marks `TASK-101` as **Done** on your live screen!
+
+---
+
+### Step 5: Setting Profile Image & Visual Identity Across Kanban
+
+Navigate to the **Profile** tab to customize your account photo:
+
+1. **Upload Local Photo**:
+   - Click the camera icon or **Upload Local Photo**.
+   - Select any image file (PNG, JPG, WebP, SVG). The client automatically crops and compresses it on an HTML5 canvas for fast, lightweight storage.
+2. **Developer Avatar Presets**:
+   - Choose from ready-made presets (e.g. *Bot Lead*, *Frontend Dev*, *Adventurer*, *Pixel Hacker*, *Tech Pro*, *Cyberpunk*).
+3. **Direct Image URL**:
+   - Enter any image URL (e.g. your GitHub avatar `https://github.com/username.png`) and click **Set URL**.
+4. **Universal Visual Synchronization**:
+   - Your profile image is propagated instantly to:
+     - **Kanban Task Cards**: Displayed next to your name in task footers.
+     - **Navbar**: Displayed in the top right user badge.
+     - **Task View Modal**: Displayed in the assignee detail section.
+     - **Team Members Cluster & Roster**: Visible in the board header and modal roster.
+     - **Git Commit Logs**: Visible beside each commit author.
+
+---
+
+### Step 6: Interactive Right Rolling Wheel Animation (All 3 Sections)
+
+On the right side of every task card, a stylized Bauhaus mechanical wheel rolls continuously:
+
+1. **Section Variations**:
+   - **To Do**: Blueprint sky-blue rolling wheel rotating steadily (`6s` cycle).
+   - **In Progress**: High-torque energetic amber/yellow gear rolling actively (`2.2s` cycle).
+   - **Done**: Verified emerald green check-hub wheel rolling smoothly (`4.5s` cycle).
+2. **Image Integration**:
+   - If the task has an image attachment, that image rolls inside the wheel hub!
+   - If the task has an assigned member with a profile photo, their avatar rolls inside the wheel hub!
+   - Fallback section icons (`Settings` / `CheckCircle2` / `CircleDashed`) display if no custom image is present.
+3. **Hover Acceleration**:
+   - Hovering your cursor over any task card accelerates the wheel's rotation, providing satisfying, tactile feedback!
 
 ---
 
@@ -184,24 +206,25 @@ The profile automatically calculates and displays:
 When demonstrating this project to an evaluator or team:
 
 1. **Start Screen & Login Validation**:
-   - Show the login form and try clicking **Enter Workspace** with empty inputs.
+   - Show the clean login form (demo credential box removed). Try clicking **Enter Workspace** with empty inputs.
    - Point out the red validation highlight and error messages (*"Username or email address is required"*, *"Passcode is required"*).
-2. **Project Hub**:
+2. **Profile Avatar Customization**:
    - Log in as `sarthak` (Admin).
+   - Navigate to **Profile** and upload or select an avatar preset.
+   - Show how the avatar immediately updates in the navbar and profile hero.
+3. **Project Hub**:
    - Create a project named *"Autonomous Robotics"*. Point out the auto-generated Team Code (e.g., `PRJ-4821`).
-3. **Team Member Joining**:
-   - Open an incognito browser window and log in as `alex_dev` (Member).
-   - Enter `PRJ-4821` to join the project.
-4. **Issue a Task (Empty Title Validation)**:
-   - Click **+ Create & Assign Task**. Leave Title blank and click **Issue Task**.
-   - Show the bold warning banner: *"Warning: Task title is required!"* with the input highlighted in red and auto-focused.
-   - Enter title *"Calibrate LiDAR Sensor"* and assign it to `alex_dev`. Note the auto-generated sequential ID `[TASK-101]`.
-5. **Start Task**:
-   - As `alex_dev`, click **Start Work** to move `TASK-101` to **In Progress**.
-6. **Demonstrate the Commit-Gate**:
-   - Try to drag `TASK-101` into **Done**.
-   - Show the red alert: explain that SprintStack prevents developers from claiming work is done without verified code commits.
+4. **Team Member Joining & Visual Allotment**:
+   - In an incognito window, log in as `alex_dev` (Member) and join `PRJ-4821`.
+   - On the Admin's board, create a task assigned to `alex_dev`.
+   - Show how `alex_dev`'s avatar and handle are directly visible on the task card in the board without having to click into it!
+5. **Right Rolling Wheel Animation**:
+   - Point out the rolling image wheel on the right edge of the card in all three columns (To Do, In Progress, Done).
+   - Hover over the card to demonstrate the speed acceleration.
+6. **Start Task & Demonstrate Commit-Gate**:
+   - Move task to **In Progress** via **Start Work**.
+   - Attempt to drag the task directly to **Done**; show the strict commit-gate rejection warning.
 7. **Commit & Complete**:
-   - Switch to the **Git Automation** tab.
-   - Run the commit `$ git commit -m "TASK-101: completed sensor calibration"`.
-   - Switch back to the **Task Board** to show `TASK-101` now resting in **Done** with green commit hash `#...` and author attribution!
+   - Switch to **Git Automation** tab.
+   - Execute `$ git commit -m "TASK-101: completed sensor calibration"`.
+   - Switch back to the **Task Board** to show the task verified and completed in **Done** with the emerald green verified rolling wheel!

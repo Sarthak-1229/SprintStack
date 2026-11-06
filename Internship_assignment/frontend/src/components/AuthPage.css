@@ -15,29 +15,20 @@
   padding: 2.25rem;
 }
 
-.auth-geometric-header {
+.auth-logo-header {
   display: flex;
-  gap: 8px;
-  margin-bottom: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.85rem;
 }
 
-.auth-shape {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #1D1D1D;
-}
-
-.shape-red {
-  background: var(--accent-red, #E1251B);
-}
-
-.shape-yellow {
-  border-radius: 50%;
-  background: var(--accent-yellow, #F0D700);
-}
-
-.shape-blue {
-  background: var(--accent-blue, #0056A3);
+.auth-brand-logo {
+  height: 56px;
+  width: auto;
+  max-width: 72px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  display: block;
 }
 
 .auth-title {

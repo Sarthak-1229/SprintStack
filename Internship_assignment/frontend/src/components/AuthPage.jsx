@@ -144,10 +144,8 @@ function AuthPage() {
     <div className="auth-container">
       <div className="auth-card">
         {/* Geometric Bauhaus Header */}
-        <div className="auth-geometric-header">
-          <span className="auth-shape shape-red"></span>
-          <span className="auth-shape shape-yellow"></span>
-          <span className="auth-shape shape-blue"></span>
+        <div className="auth-logo-header">
+          <img src="/logo.jpg" alt="SprintStack Logo" className="auth-brand-logo" />
         </div>
 
         <h1 className="auth-title">SprintStack</h1>
@@ -194,7 +192,6 @@ function AuthPage() {
                         clearFieldError('identifier');
                       }}
                       className={`auth-input ${fieldErrors.identifier ? 'input-error' : ''}`}
-                      placeholder="e.g. sarthak or alex_dev"
                       autoFocus
                     />
                     {fieldErrors.identifier && (
@@ -385,21 +382,9 @@ function AuthPage() {
                   <ArrowRight size={16} />
                 </button>
               </form>
-
-              <div className="auth-demo-helper">
-                <span className="demo-title">Default Demo Credentials:</span>
-                <div className="demo-row" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <ShieldCheck size={12} color="var(--accent-red, #E1251B)" />
-                  <span>Admin: <code>sarthak</code> / <code>sarthak_1204</code></span>
-                </div>
-                <div className="demo-row" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Zap size={12} color="var(--accent-blue, #0056A3)" />
-                  <span>Member: <code>alex_dev</code> / <code>password123</code></span>
-                </div>
-              </div>
-          </div>
+      </div>
     </div>
-      );
+  );
 }
 
-      export default AuthPage;
+export default AuthPage;

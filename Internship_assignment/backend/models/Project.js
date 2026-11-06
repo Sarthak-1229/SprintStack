@@ -5,6 +5,7 @@ const memberSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     username: { type: String, required: true },
     role: { type: String, enum: ['admin', 'member'], default: 'member' },
+    avatar: { type: String, default: '' },
     joinedAt: { type: Date, default: Date.now }
   },
   { _id: false }
@@ -14,12 +15,12 @@ const projectSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '', trim: true },
-    code: { 
-      type: String, 
-      required: true, 
-      unique: true, 
-      uppercase: true, 
-      trim: true 
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true
     },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     ownerUsername: { type: String, required: true },
@@ -49,4 +50,3 @@ projectSchema.set('toObject', {
 });
 
 module.exports = mongoose.model('Project', projectSchema);
-
