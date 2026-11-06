@@ -907,153 +907,9 @@ body {
 
 
 /* ============================================================ */
-/* Right Image Wheel Rolling Animation & Assignee Avatar Pill  */
 /* ============================================================ */
-.task-card {
-  padding-right: 4.8rem !important;
-  position: relative;
-}
-
-.task-card-wheel-wrap {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 46px;
-  height: 46px;
-  z-index: 5;
-  pointer-events: auto;
-  transition: transform 0.2s ease;
-}
-
-.task-card:hover .task-card-wheel-wrap {
-  transform: translateY(-50%) scale(1.08);
-}
-
-.task-card-rolling-wheel {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 3px solid var(--accent-black, #1D1D1D);
-  box-shadow: 2px 2px 0 var(--accent-black, #1D1D1D);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  will-change: transform;
-}
-
-@keyframes rollTaskWheel {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Three Sections Variations */
-.wheel-to-do .task-card-rolling-wheel {
-  background: #e0f2fe;
-  border-color: var(--accent-black, #1D1D1D);
-  animation: rollTaskWheel 6s linear infinite;
-}
-
-.wheel-in-progress .task-card-rolling-wheel {
-  background: var(--accent-yellow, #F0D700);
-  border-color: var(--accent-black, #1D1D1D);
-  animation: rollTaskWheel 2.2s linear infinite;
-}
-
-.wheel-done .task-card-rolling-wheel {
-  background: #dcfce7;
-  border-color: #16a34a;
-  animation: rollTaskWheel 4.5s linear infinite;
-}
-
-/* Hover Speed Acceleration */
-.task-card:hover .wheel-to-do .task-card-rolling-wheel {
-  animation-duration: 2.8s;
-}
-
-.task-card:hover .wheel-in-progress .task-card-rolling-wheel {
-  animation-duration: 1.1s;
-}
-
-.task-card:hover .wheel-done .task-card-rolling-wheel {
-  animation-duration: 2s;
-}
-
-/* Wheel Spokes & Mechanical Lines */
-.wheel-spokes-cross {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.wheel-spokes-cross .spoke {
-  position: absolute;
-  background: rgba(29, 29, 29, 0.45);
-}
-
-.wheel-spokes-cross .spoke-1 {
-  width: 100%;
-  height: 2px;
-}
-
-.wheel-spokes-cross .spoke-2 {
-  width: 2px;
-  height: 100%;
-}
-
-.wheel-spokes-cross .spoke-3 {
-  width: 100%;
-  height: 2px;
-  transform: rotate(45deg);
-}
-
-.wheel-spokes-cross .spoke-4 {
-  width: 100%;
-  height: 2px;
-  transform: rotate(-45deg);
-}
-
-/* Wheel Central Hub */
-.wheel-hub-content {
-  position: relative;
-  z-index: 2;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid var(--accent-black, #1D1D1D);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
-}
-
-.wheel-image-elem {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  display: block;
-}
-
-.wheel-badge-elem {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
+/* 3D Rotating Task Cards Pile Wheel (Stacked Rolodex Deck)    */
+/* ============================================================ */
 
 .task-assignee-strip {
   display: inline-flex;
@@ -1063,4 +919,238 @@ body {
   border: 1.5px solid var(--accent-black, #1D1D1D);
   padding: 0.15rem 0.5rem 0.15rem 0.2rem;
   box-shadow: 1px 1px 0 var(--accent-black, #1D1D1D);
+}
+
+/* Column controls bar */
+.card-wheel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 2px solid var(--accent-black, #1D1D1D);
+  box-shadow: 2px 2px 0 var(--accent-black, #1D1D1D);
+  padding: 0.3rem 0.55rem;
+  margin-bottom: 0.65rem;
+  user-select: none;
+}
+
+.card-wheel-nav-btn {
+  background: #f3f4f6;
+  border: 1.5px solid var(--accent-black, #1D1D1D);
+  color: var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.12s ease;
+}
+
+.card-wheel-nav-btn:hover:not(:disabled) {
+  background: var(--accent-yellow, #F0D700);
+  transform: translate(-1px, -1px);
+  box-shadow: 1.5px 1.5px 0 var(--accent-black, #1D1D1D);
+}
+
+.card-wheel-nav-btn:active:not(:disabled) {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.card-wheel-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-wheel-indicator {
+  font-size: 0.74rem;
+  font-weight: 900;
+  color: var(--accent-black, #1D1D1D);
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 2px;
+  transition: background 0.1s ease;
+}
+
+.card-wheel-indicator:hover {
+  background: #f3f4f6;
+}
+
+.card-wheel-toggle-mode {
+  background: #ffffff;
+  border: 1.5px solid var(--accent-black, #1D1D1D);
+  box-shadow: 1.5px 1.5px 0 var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--accent-black, #1D1D1D);
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: transform 0.1s;
+}
+
+.card-wheel-toggle-mode:hover {
+  transform: translate(-1px, -1px);
+  background: #fef08a;
+}
+
+/* 3D Perspective Pile Container */
+.cards-wheel-pile-stage {
+  perspective: 1200px;
+  position: relative;
+  min-height: 240px;
+  padding-bottom: 2rem;
+  transition: min-height 0.2s ease;
+}
+
+/* Layering in the Pile */
+.pile-card-wrapper {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease, filter 0.3s ease;
+  will-change: transform, opacity;
+}
+
+/* Active Front Card */
+.pile-card-wrapper.pile-active {
+  position: relative;
+  z-index: 10;
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Peek Card 1 (Directly behind active card in 3D) */
+.pile-card-wrapper.pile-peek-1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 8;
+  transform: translateY(14px) translateZ(-45px) rotateX(-5deg) scale(0.96);
+  opacity: 0.82;
+  filter: contrast(0.92) brightness(0.98);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pile-card-wrapper.pile-peek-1:hover {
+  transform: translateY(10px) translateZ(-30px) rotateX(-3deg) scale(0.97);
+  opacity: 0.95;
+}
+
+/* Peek Card 2 (Second behind active card in 3D) */
+.pile-card-wrapper.pile-peek-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  transform: translateY(26px) translateZ(-90px) rotateX(-9deg) scale(0.92);
+  opacity: 0.55;
+  filter: contrast(0.85) brightness(0.95);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pile-card-wrapper.pile-peek-2:hover {
+  transform: translateY(22px) translateZ(-70px) rotateX(-7deg) scale(0.94);
+  opacity: 0.75;
+}
+
+/* Deep Stack (Hidden from view until rotated) */
+.pile-card-wrapper.pile-hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  transform: translateY(36px) translateZ(-140px) rotateX(-14deg) scale(0.88);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 3D Wheel Rotation Animations */
+.anim-rotate-next .pile-card-wrapper.pile-active {
+  animation: cardWheelRotateOutNext 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.anim-rotate-next .pile-card-wrapper.pile-peek-1 {
+  animation: cardWheelRotateInNext 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.anim-rotate-prev .pile-card-wrapper.pile-active {
+  animation: cardWheelRotateOutPrev 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.anim-rotate-prev .pile-card-wrapper.pile-peek-last {
+  animation: cardWheelRotateInPrev 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes cardWheelRotateOutNext {
+  0% {
+    transform: translateY(0) translateZ(0) rotateX(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-35px) translateZ(40px) rotateX(28deg) scale(1.02);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-80px) translateZ(-50px) rotateX(65deg) scale(0.88);
+    opacity: 0;
+  }
+}
+
+@keyframes cardWheelRotateInNext {
+  0% {
+    transform: translateY(14px) translateZ(-45px) rotateX(-5deg) scale(0.96);
+    opacity: 0.82;
+  }
+  100% {
+    transform: translateY(0) translateZ(0) rotateX(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes cardWheelRotateOutPrev {
+  0% {
+    transform: translateY(0) translateZ(0) rotateX(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(40px) translateZ(-40px) rotateX(-25deg) scale(0.92);
+    opacity: 0;
+  }
+}
+
+@keyframes cardWheelRotateInPrev {
+  0% {
+    transform: translateY(-70px) translateZ(-40px) rotateX(50deg) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) translateZ(0) rotateX(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.wheel-scroll-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: var(--text-muted, #6b7280);
+  font-weight: 700;
+  margin-top: 0.35rem;
+  user-select: none;
 }

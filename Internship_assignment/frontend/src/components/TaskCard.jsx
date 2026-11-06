@@ -13,9 +13,7 @@ import {
   GitCommit,
   Paperclip,
   Calendar,
-  Clock,
-  Settings,
-  CircleDashed
+  Clock
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 
@@ -25,9 +23,9 @@ function formatDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function TaskCard({ task, index, onEdit, onView }) {
+function TaskCard({ task, index, onEdit, onView, isWheelPeek = false, onWheelPeekClick }) {
   const { deleteTask, moveTask } = useTaskContext();
-  const { user, getUserAvatar } = useAuth();
+  const { user } = useAuth();
   const { currentProject } = useProject();
   const [copiedId, setCopiedId] = useState(false);
 
@@ -56,55 +54,19 @@ function TaskCard({ task, index, onEdit, onView }) {
     moveTask(task.id, 'In Progress');
   };
 
-  const assigneeAvatar = getUserAvatar(task.assignee);
-  const wheelImage = isImage
-    ? task.attachment
-    : (assigneeAvatar || (user?.username === task.assignee ? user?.avatar : ''));
-
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
         <div
-          className={`task-card priority-${task.priority} ${snapshot.isDragging ? 'dragging' : ''} ${isOverdue ? 'overdue' : ''} ${isDone ? 'status-done' : ''}`}
+          className={`task-card priority-${task.priority} ${snapshot.isDragging ? 'dragging' : ''} ${isOverdue ? 'overdue' : ''} ${isDone ? 'status-done' : ''} ${isWheelPeek ? 'wheel-peek-card' : ''}`}
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           data-testid={`task-card-${task.id}`}
           aria-label={`Task: ${task.title}`}
-          onClick={onView}
-          style={{ cursor: 'pointer', ...provided.draggableProps.style }}
+          onClick={isWheelPeek ? onWheelPeekClick : onView}
+          style={{ cursor: isWheelPeek ? 'pointer' : 'pointer', ...provided.draggableProps.style }}
         >
-          {/* Right Rolling Wheel Animation (All 3 Sections) */}
-          <div
-            className={`task-card-wheel-wrap wheel-${task.status.toLowerCase().replace(/\s+/g, '-')}`}
-            title={`Section: ${task.status} • Rolling wheel animation`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="task-card-rolling-wheel">
-              <div className="wheel-spokes-cross">
-                <div className="spoke spoke-1" />
-                <div className="spoke spoke-2" />
-                <div className="spoke spoke-3" />
-                <div className="spoke spoke-4" />
-              </div>
-              <div className="wheel-hub-content">
-                {wheelImage ? (
-                  <img src={wheelImage} alt="wheel-hub" className="wheel-image-elem" />
-                ) : (
-                  <div className="wheel-badge-elem">
-                    {isDone ? (
-                      <CheckCircle2 size={15} color="#16a34a" />
-                    ) : isToDo ? (
-                      <CircleDashed size={15} color="var(--accent-blue)" />
-                    ) : (
-                      <Settings size={15} color="var(--accent-black)" />
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Top Identifier Row */}
           <div className="task-id-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
             <button
