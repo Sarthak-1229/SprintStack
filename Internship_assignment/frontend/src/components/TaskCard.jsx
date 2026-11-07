@@ -23,7 +23,7 @@ function formatDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function TaskCard({ task, index, onEdit, onView, isWheelPeek = false, onWheelPeekClick }) {
+function TaskCard({ task, index, onEdit, onView }) {
   const { deleteTask, moveTask } = useTaskContext();
   const { user } = useAuth();
   const { currentProject } = useProject();
@@ -58,14 +58,14 @@ function TaskCard({ task, index, onEdit, onView, isWheelPeek = false, onWheelPee
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
         <div
-          className={`task-card priority-${task.priority} ${snapshot.isDragging ? 'dragging' : ''} ${isOverdue ? 'overdue' : ''} ${isDone ? 'status-done' : ''} ${isWheelPeek ? 'wheel-peek-card' : ''}`}
+          className={`task-card priority-${task.priority} ${snapshot.isDragging ? 'dragging' : ''} ${isOverdue ? 'overdue' : ''} ${isDone ? 'status-done' : ''}`}
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           data-testid={`task-card-${task.id}`}
           aria-label={`Task: ${task.title}`}
-          onClick={isWheelPeek ? onWheelPeekClick : onView}
-          style={{ cursor: isWheelPeek ? 'pointer' : 'pointer', ...provided.draggableProps.style }}
+          onClick={onView}
+          style={{ cursor: 'pointer', ...provided.draggableProps.style }}
         >
           {/* Top Identifier Row */}
           <div className="task-id-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>

@@ -13,7 +13,7 @@
 - **Role-Based Governance**: Clear segregation between **Project Admins** (Leads) and **Team Members** (Developers).
 - **Strict Client & Server Validation**: Robust validation preventing empty task creations, malformed logins, and invalid transitions.
 - **Instant Visual Identification**: Custom user profile pictures appear directly on Kanban task cards, navbar, and rosters, eliminating the need to repeatedly open cards to verify task allotment.
-- **Continuous Rolling Wheel Animation**: Interactive mechanical wheel animations on the right side of task cards across all three columns (To Do, In Progress, Done).
+- **Horizontal Task Carousel Navigation**: Column cards scroll horizontally with snappy card alignment, navigation chevrons, position dots, and a quick switch to traditional vertical list view.
 
 ---
 
@@ -33,7 +33,7 @@
 | Push via In-App Git Terminal | Yes | Yes |
 | Delete Tasks | Yes | — |
 | Set Profile Picture & Developer Track | Yes | Yes |
-| Right Rolling Wheel Visualization | Yes | Yes |
+| Horizontal Carousel & List View Toggle | Yes | Yes |
 
 ---
 
@@ -159,20 +159,20 @@ Navigate to the **Profile** tab to customize your account photo:
 
 ---
 
-### Step 6: Interactive Right Rolling Wheel Animation (All 3 Sections)
+### Step 6: Horizontal Scrolling Carousel & View Switching
 
-On the right side of every task card, a stylized Bauhaus mechanical wheel rolls continuously:
+Each column (**To Do**, **In Progress**, **Done**) supports horizontal card browsing:
 
-1. **Section Variations**:
-   - **To Do**: Blueprint sky-blue rolling wheel rotating steadily (`6s` cycle).
-   - **In Progress**: High-torque energetic amber/yellow gear rolling actively (`2.2s` cycle).
-   - **Done**: Verified emerald green check-hub wheel rolling smoothly (`4.5s` cycle).
-2. **Image Integration**:
-   - If the task has an image attachment, that image rolls inside the wheel hub!
-   - If the task has an assigned member with a profile photo, their avatar rolls inside the wheel hub!
-   - Fallback section icons (`Settings` / `CheckCircle2` / `CircleDashed`) display if no custom image is present.
-3. **Hover Acceleration**:
-   - Hovering your cursor over any task card accelerates the wheel's rotation, providing satisfying, tactile feedback!
+1. **Horizontal Carousel Mode (Default)**:
+   - When multiple tasks exist in a column, cards align side-by-side in a responsive horizontal track.
+   - **Snap Scrolling**: Smooth `x mandatory` CSS scroll-snap ensures each card settles neatly in view when scrolling.
+   - **Navigation Chevrons**: Solid Bauhaus left and right arrow buttons let you step through tasks card-by-card.
+   - **Position Dot Indicators**: Interactive dots at the bottom of the column show the active card index and let you click directly to jump to any task.
+2. **View Mode Toggle**:
+   - Each column header features a toggle button (`Carousel` / `List`) in its top-right corner.
+   - Click the list icon to switch to standard vertical stacking, or click the carousel icon to switch back to horizontal browsing.
+3. **Full Drag-and-Drop Compatibility**:
+   - Tasks can be dragged horizontally within the carousel or across columns without breaking alignment.
 
 ---
 
