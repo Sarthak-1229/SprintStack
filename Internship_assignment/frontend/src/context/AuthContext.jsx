@@ -7,7 +7,14 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [usersMap, setUsersMap] = useState({});
+  const [usersMap, setUsersMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sprintstack_users_map');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
@@ -28,6 +35,9 @@ export const AuthProvider = ({ children }) => {
           }
         });
         setUsersMap(map);
+        try {
+          localStorage.setItem('sprintstack_users_map', JSON.stringify(map));
+        } catch { }
       }
     } catch (e) {
       console.error('Failed to fetch users directory:', e);

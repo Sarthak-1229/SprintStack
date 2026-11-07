@@ -17,6 +17,46 @@ const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
 app.use(express.json({ limit: "10mb" }));
 
+// Standard HTTP Security Headers
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+// Lightweight In-Memory Sliding Window Rate Limiter for Auth Routes
+const authRateMap = new Map();
+const rateLimitAuth = (maxAttempts = 25, windowMs = 60 * 1000) => {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection?.remoteAddress || "global";
+    const now = Date.now();
+    const entry = authRateMap.get(ip) || { count: 0, resetTime: now + windowMs };
+    if (now > entry.resetTime) {
+      entry.count = 0;
+      entry.resetTime = now + windowMs;
+    }
+    entry.count += 1;
+    authRateMap.set(ip, entry);
+    if (entry.count > maxAttempts) {
+      return res.status(429).json({ message: "Too many authentication requests. Please wait a minute." });
+    }
+    next();
+  };
+};
+
+// Health Check Probe (Keep-alive ping endpoint to prevent Render cold starts)
+app.get(["/health", "/api/health"], (req, res) => {
+  const isDbReady = mongoose.connection.readyState === 1;
+  res.status(isDbReady ? 200 : 503).json({
+    status: isDbReady ? "ok" : "degraded",
+    uptimeSeconds: Math.floor(process.uptime()),
+    database: isDbReady ? "connected" : "connecting/disconnected",
+    timestamp: new Date().toISOString()
+  });
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: process.env.FRONTEND_URL || "*" },
@@ -67,7 +107,7 @@ function extractTaskIds(message) {
 // ========================
 
 // Register
-app.post("/api/register", async (req, res) => {
+app.post("/api/register", rateLimitAuth(), async (req, res) => {
   try {
     const { 
       username, 
@@ -148,7 +188,7 @@ app.post("/api/register", async (req, res) => {
 });
 
 // Login
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", rateLimitAuth(), async (req, res) => {
   try {
     const { identifier, password } = req.body;
     if (!identifier || !password) {
@@ -506,6 +546,18 @@ app.put("/api/tasks/:id", requireAuth, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    const project = await Project.findById(task.projectId);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const isMember =
+      project.ownerUsername === req.user.username ||
+      project.members.some((m) => m.username === req.user.username) ||
+      req.user.role === "admin";
+
+    if (!isMember) {
+      return res.status(403).json({ message: "You are not a member of this project" });
+    }
 
     const {
       title,
@@ -966,3 +1018,20 @@ server.listen(PORT, async () => {
   console.log(`========================================`);
   await initializeDatabase();
 });
+
+// Graceful Shutdown
+const gracefulShutdown = async (signal) => {
+  console.log(`\nReceived ${signal}. Shutting down SprintStack server gracefully...`);
+  server.close(async () => {
+    try {
+      await mongoose.connection.close();
+      console.log("MongoDB connection closed.");
+    } catch (e) {
+      console.error("Error closing MongoDB connection:", e);
+    }
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

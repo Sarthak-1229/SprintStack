@@ -11,7 +11,18 @@ export const TaskProvider = ({ children }) => {
   const { token, user } = useAuth();
   const { currentProject } = useProject();
 
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const savedProjectId = localStorage.getItem('currentProjectId');
+      if (savedProjectId) {
+        const cached = localStorage.getItem(`sprintstack_tasks_${savedProjectId}`);
+        return cached ? JSON.parse(cached) : [];
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
   const [commits, setCommits] = useState([]);
   const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,20 +40,24 @@ export const TaskProvider = ({ children }) => {
       return;
     }
     try {
-      setLoading(true);
+      if (tasks.length === 0) setLoading(true);
       const res = await fetch(`${BACKEND_URL}/api/projects/${currentProject.id}/tasks`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setTasks(data.map(normalizeTask));
+        const normalized = data.map(normalizeTask);
+        setTasks(normalized);
+        try {
+          localStorage.setItem(`sprintstack_tasks_${currentProject.id}`, JSON.stringify(normalized));
+        } catch { }
       }
     } catch (e) {
       console.error('Error fetching tasks:', e);
     } finally {
       setLoading(false);
     }
-  }, [token, currentProject?.id, BACKEND_URL]);
+  }, [token, currentProject?.id, BACKEND_URL, tasks.length]);
 
   // Fetch commits for current project
   const fetchCommits = useCallback(async () => {

@@ -8,8 +8,15 @@ export const useProject = () => useContext(ProjectContext);
 export const ProjectProvider = ({ children }) => {
   const { token, user } = useAuth();
   const [projects, setProjects] = useState([]);
-  const [currentProject, setCurrentProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [currentProject, setCurrentProject] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sprintstack_current_project');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(!currentProject);
   const [error, setError] = useState(null);
 
   const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
@@ -23,7 +30,7 @@ export const ProjectProvider = ({ children }) => {
     }
 
     try {
-      setLoading(true);
+      if (!currentProject) setLoading(true);
       const res = await fetch(`${BACKEND_URL}/api/projects`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -37,11 +44,14 @@ export const ProjectProvider = ({ children }) => {
       const found = data.find((p) => p.id === savedProjectId);
       if (found) {
         setCurrentProject(found);
+        localStorage.setItem('sprintstack_current_project', JSON.stringify(found));
       } else if (data.length > 0) {
         setCurrentProject(data[0]);
         localStorage.setItem('currentProjectId', data[0].id);
+        localStorage.setItem('sprintstack_current_project', JSON.stringify(data[0]));
       } else {
         setCurrentProject(null);
+        localStorage.removeItem('sprintstack_current_project');
       }
     } catch (err) {
       console.error('Projects fetch error:', err);
@@ -49,7 +59,7 @@ export const ProjectProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [token, BACKEND_URL]);
+  }, [token, BACKEND_URL, currentProject]);
 
   useEffect(() => {
     fetchProjects();
@@ -59,8 +69,10 @@ export const ProjectProvider = ({ children }) => {
     setCurrentProject(project);
     if (project) {
       localStorage.setItem('currentProjectId', project.id);
+      localStorage.setItem('sprintstack_current_project', JSON.stringify(project));
     } else {
       localStorage.removeItem('currentProjectId');
+      localStorage.removeItem('sprintstack_current_project');
     }
   };
 

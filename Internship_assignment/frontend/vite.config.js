@@ -14,4 +14,17 @@ export default defineConfig({
     open: true,
   },
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-dnd': ['@hello-pangea/dnd'],
+          'vendor-socket': ['socket.io-client'],
+          'vendor-icons': ['lucide-react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 });
