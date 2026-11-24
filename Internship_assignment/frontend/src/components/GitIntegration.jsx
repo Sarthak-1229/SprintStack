@@ -64,7 +64,8 @@ function GitIntegration() {
     const res = await simulateCommit({
       commitMessage: customMsg.trim(),
       author: user?.username || 'developer',
-      branch
+      branch,
+      repoUrl: currentProject?.githubRepo || ''
     });
 
     setIsPushing(false);
@@ -73,7 +74,10 @@ function GitIntegration() {
         success: true,
         message: res.message,
         matched: res.matchedTaskIds,
-        commit: res.commitLog
+        commit: res.commitLog,
+        commitUrl: res.commitUrl,
+        repoUrl: res.repoUrl,
+        pushedToGitHub: res.pushedToGitHub
       });
       setCustomMsg('');
       setSelectedTask('');
@@ -278,7 +282,9 @@ curl -s -X POST "${commitApiUrl}" \\
                       {lastResult.success ? (
                         <>
                           <div className="term-out-line">
-                            {lastResult.pushedToGitHub ? '✓ [remote: GitHub] Real commit pushed to GitHub repository!' : '✓ [remote: webhook] Commit accepted!'}
+                            {lastResult.pushedToGitHub
+                              ? `✓ [remote: ${lastResult.repoUrl || currentProject?.githubRepo || 'GitHub'}] Real commit pushed to connected repository!`
+                              : '✓ [remote: webhook] Commit accepted!'}
                           </div>
                           <div className="term-out-line">
                             ➔ Linked Task(s): <strong>{lastResult.matched?.join(', ') || 'None'}</strong> moved to <strong>Done</strong>

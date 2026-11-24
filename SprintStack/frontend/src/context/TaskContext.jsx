@@ -33,10 +33,10 @@ export const TaskProvider = ({ children }) => {
   const moveTask = async (id, status) => { await request(`/api/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); await refreshTasks(); };
   const deleteTask = async (id) => { await request(`/api/tasks/${id}`, { method: 'DELETE' }); await refreshTasks(); };
 
-  const dispatchCommit = async ({ commitMessage, author, branch }) => {
+  const dispatchCommit = async ({ commitMessage, author, branch, repoUrl }) => {
     const result = await request('/api/commit', {
       method: 'POST',
-      body: JSON.stringify({ commitMessage, author, branch }),
+      body: JSON.stringify({ commitMessage, author, branch, repoUrl }),
     });
     await refreshTasks();
     return result;

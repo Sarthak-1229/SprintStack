@@ -12,6 +12,7 @@ function GitCommitModal({ isOpen, onClose }) {
   const [commitMessage, setCommitMessage] = useState('');
   const [branch, setBranch] = useState('main');
   const [author, setAuthor] = useState('');
+  const [repoUrl, setRepoUrl] = useState('https://github.com/Sarthak-1229/locrep');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -62,7 +63,8 @@ function GitCommitModal({ isOpen, onClose }) {
       const res = await dispatchCommit({
         commitMessage: commitMessage.trim(),
         author: author.trim() || user?.username || 'developer',
-        branch: branch.trim() || 'main'
+        branch: branch.trim() || 'main',
+        repoUrl: repoUrl.trim()
       });
       setResult(res);
     } catch (err) {
@@ -185,6 +187,24 @@ function GitCommitModal({ isOpen, onClose }) {
               />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Tip: Including <code>TASK-XXX</code> or the task's title advances the task to <strong>Done</strong>.
+              </span>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label htmlFor="commit-repo-input" style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.35rem', fontSize: '0.85rem' }}>
+                Target GitHub Repository:
+              </label>
+              <input
+                id="commit-repo-input"
+                type="text"
+                className="form-input"
+                placeholder="e.g. https://github.com/Sarthak-1229/locrep or locrep"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                disabled={submitting}
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Target repository connected to this project (e.g. <code>locrep</code> or full GitHub URL).
               </span>
             </div>
 

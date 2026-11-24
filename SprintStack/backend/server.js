@@ -82,13 +82,10 @@ async function createTask(data) {
   if (!data.taskId) {
     data.taskId = await getNextTaskId();
   }
-  if (!data.status) {
-    data.status = 'To Do';
-  }
   if (!useLocalStore) return Task.create(data);
   return updateLocalStore((state) => {
     const now = new Date().toISOString();
-    const task = { status: 'To Do', ...data, id: randomUUID(), createdAt: now, updatedAt: now };
+    const task = { ...data, id: randomUUID(), createdAt: now, updatedAt: now };
     state.tasks.push(task);
     return task;
   });
@@ -198,7 +195,45 @@ function findGitRepoRoot(startDir = __dirname) {
   return null;
 }
 
-// Execute a REAL Git commit and push directly to GitHub
+// Helper to extract default GitHub owner from git remote
+function getDefaultGitOwner(repoRoot) {
+  try {
+    const originUrl = execSync('git remote get-url origin', { cwd: repoRoot, encoding: 'utf8' }).trim();
+    const match = originUrl.match(/github\.com[/:]([^/]+)\//i);
+    if (match && match[1]) return match[1];
+  } catch {}
+  return 'Sarthak-1229';
+}
+
+// Normalize any repository input (full URL, owner/repo, bare name, or typo like locorep -> locrep)
+function normalizeGitHubRepo(repoUrl, defaultOwner = 'Sarthak-1229') {
+  if (!repoUrl || typeof repoUrl !== 'string') return '';
+  let clean = repoUrl.trim();
+  if (!clean) return '';
+
+  // Fix typo "locorep" -> "locrep"
+  if (/locorep/i.test(clean)) {
+    clean = clean.replace(/locorep/gi, 'locrep');
+  }
+
+  // SSH url -> HTTPS
+  clean = clean.replace(/^git@github\.com:/, 'https://github.com/');
+
+  // If already full http(s) URL
+  if (/^https?:\/\//i.test(clean)) {
+    return clean.replace(/\.git$/, '');
+  }
+
+  // If owner/repo: "Sarthak-1229/locrep"
+  if (clean.includes('/')) {
+    return `https://github.com/${clean.replace(/\.git$/, '')}`;
+  }
+
+  // If bare name: "locrep"
+  return `https://github.com/${defaultOwner}/${clean.replace(/\.git$/, '')}`;
+}
+
+// Execute a REAL Git commit and push directly to GitHub (supports project-connected repos!)
 async function executeRealGitCommitAndPush({ commitMessage, author, branch = 'main', repoUrl = '' }) {
   const repoRoot = findGitRepoRoot(__dirname);
   if (!repoRoot) {
@@ -213,93 +248,173 @@ async function executeRealGitCommitAndPush({ commitMessage, author, branch = 'ma
   }
 
   try {
-    // 1. Maintain a persistent COMMITS.md ledger in the Git repo
-    const commitsLogFile = path.join(repoRoot, 'COMMITS.md');
-    const timestamp = new Date().toISOString();
-    const needsHeader = !fsSync.existsSync(commitsLogFile);
-    const header = '# SprintStack Git Commit Ledger\n\n| Timestamp | Author | Commit Message |\n|---|---|---|\n';
-    const logRow = `| ${timestamp} | ${author || 'developer'} | ${commitMessage.replace(/\|/g, '-')} |\n`;
-    fsSync.appendFileSync(commitsLogFile, (needsHeader ? header : '') + logRow, 'utf8');
-
-    // 2. Stage the COMMITS.md file
-    spawnSync('git', ['add', 'COMMITS.md'], { cwd: repoRoot, stdio: 'pipe' });
-
-    // 3. Make real git commit using spawnSync
-    const authorClean = (author || 'developer').replace(/["<>]/g, '');
-    const authorStr = `${authorClean} <developer@sprintstack.local>`;
-    spawnSync('git', ['commit', '-m', commitMessage, `--author=${authorStr}`, '--allow-empty'], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      stdio: 'pipe'
-    });
-
-    // 4. Retrieve real git commit hashes
-    let shortHash = '';
-    let fullHash = '';
-    try {
-      shortHash = execSync('git rev-parse --short HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
-      fullHash = execSync('git rev-parse HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
-    } catch {
-      shortHash = Math.random().toString(36).substring(2, 9);
-      fullHash = shortHash;
-    }
-
-    // 5. Determine active origin URL
+    const defaultOwner = getDefaultGitOwner(repoRoot);
     let originUrl = '';
     try {
       originUrl = execSync('git remote get-url origin', { cwd: repoRoot, encoding: 'utf8' }).trim();
     } catch {}
 
-    const cleanWebRepo = (originUrl || repoUrl || '')
-      .replace(/\.git$/, '')
-      .replace(/^git@github\.com:/, 'https://github.com/');
+    const cleanOrigin = originUrl.replace(/\.git$/, '').replace(/^git@github\.com:/, 'https://github.com/');
+    const targetClean = repoUrl ? normalizeGitHubRepo(repoUrl, defaultOwner) : cleanOrigin;
+    const isCurrentWorkspaceRepo = (!targetClean || targetClean.toLowerCase() === cleanOrigin.toLowerCase());
+    const targetGitUrl = `${targetClean}.git`;
+    const targetBranch = branch || 'main';
+    const authorClean = (author || 'developer').replace(/["<>]/g, '');
+    const authorStr = `${authorClean} <developer@sprintstack.local>`;
 
-    // 6. Push to GitHub!
+    let shortHash = '';
+    let fullHash = '';
     let pushSuccess = false;
     let pushError = null;
-
     const token = (process.env.GIT_TOKEN || process.env.GITHUB_TOKEN || '').trim();
-    const targetBranch = branch || 'main';
 
-    const pushRes = spawnSync('git', ['push', 'origin', `HEAD:${targetBranch}`], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      stdio: 'pipe',
-      timeout: 45000
-    });
+    if (isCurrentWorkspaceRepo) {
+      // 1. Maintain a persistent COMMITS.md ledger in the Git repo
+      const commitsLogFile = path.join(repoRoot, 'COMMITS.md');
+      const timestamp = new Date().toISOString();
+      const needsHeader = !fsSync.existsSync(commitsLogFile);
+      const header = '# SprintStack Git Commit Ledger\n\n| Timestamp | Author | Commit Message |\n|---|---|---|\n';
+      const logRow = `| ${timestamp} | ${author || 'developer'} | ${commitMessage.replace(/\|/g, '-')} |\n`;
+      fsSync.appendFileSync(commitsLogFile, (needsHeader ? header : '') + logRow, 'utf8');
 
-    if (pushRes.status === 0) {
-      pushSuccess = true;
-      console.log(`✓ Real Git commit #${shortHash} pushed successfully to GitHub origin on branch '${targetBranch}'!`);
-    } else {
-      const errOut = (pushRes.stderr || pushRes.stdout || 'Git push failed').trim();
-      if (token && originUrl.includes('github.com')) {
-        const authedUrl = originUrl.replace(/https:\/\/(.*@)?github\.com\//, `https://${token}@github.com/`);
-        const tokenPushRes = spawnSync('git', ['push', authedUrl, `HEAD:${targetBranch}`], {
-          cwd: repoRoot,
-          encoding: 'utf8',
-          stdio: 'pipe',
-          timeout: 45000
-        });
-        if (tokenPushRes.status === 0) {
-          pushSuccess = true;
-          console.log(`✓ Real Git commit #${shortHash} pushed with token to GitHub origin on branch '${targetBranch}'!`);
+      // 2. Stage the COMMITS.md file
+      spawnSync('git', ['add', 'COMMITS.md'], { cwd: repoRoot, stdio: 'pipe' });
+
+      // 3. Make real git commit using spawnSync
+      spawnSync('git', ['commit', '-m', commitMessage, `--author=${authorStr}`, '--allow-empty'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+
+      // 4. Retrieve real git commit hashes
+      try {
+        shortHash = execSync('git rev-parse --short HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+        fullHash = execSync('git rev-parse HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+      } catch {
+        shortHash = Math.random().toString(36).substring(2, 9);
+        fullHash = shortHash;
+      }
+
+      // 5. Push to GitHub origin
+      const pushRes = spawnSync('git', ['push', 'origin', `HEAD:${targetBranch}`], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        timeout: 45000
+      });
+
+      if (pushRes.status === 0) {
+        pushSuccess = true;
+        console.log(`✓ Real Git commit #${shortHash} pushed successfully to GitHub origin on branch '${targetBranch}'!`);
+      } else {
+        const errOut = (pushRes.stderr || pushRes.stdout || 'Git push failed').trim();
+        if (token && originUrl.includes('github.com')) {
+          const authedUrl = originUrl.replace(/https:\/\/(.*@)?github\.com\//, `https://${token}@github.com/`);
+          const tokenPushRes = spawnSync('git', ['push', authedUrl, `HEAD:${targetBranch}`], {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            stdio: 'pipe',
+            timeout: 45000
+          });
+          if (tokenPushRes.status === 0) {
+            pushSuccess = true;
+            console.log(`✓ Real Git commit #${shortHash} pushed with token to GitHub origin on branch '${targetBranch}'!`);
+          } else {
+            pushError = (tokenPushRes.stderr || tokenPushRes.stdout || 'Token push failed').trim();
+          }
         } else {
-          pushError = (tokenPushRes.stderr || tokenPushRes.stdout || 'Token push failed').trim();
+          pushError = errOut;
+        }
+      }
+    } else {
+      // Pushing to a different connected project repo (e.g. locrep)
+      console.log(`📡 Pushing commit directly to project-connected repository: ${targetGitUrl} on branch '${targetBranch}'...`);
+      const repoSlug = targetClean.split('/').pop() || 'connected-repo';
+
+      let fetchSuccess = false;
+      try {
+        const fetchRes = spawnSync(
+          'git',
+          ['fetch', targetGitUrl, `${targetBranch}:refs/remotes/${repoSlug}/${targetBranch}`],
+          { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 30000 }
+        );
+        fetchSuccess = (fetchRes.status === 0);
+      } catch {}
+
+      if (fetchSuccess) {
+        try {
+          const treeSha = execSync(`git rev-parse "refs/remotes/${repoSlug}/${targetBranch}^{tree}"`, { cwd: repoRoot, encoding: 'utf8' }).trim();
+          const treeCommitRes = spawnSync(
+            'git',
+            ['commit-tree', treeSha, '-p', `refs/remotes/${repoSlug}/${targetBranch}`, '-m', commitMessage],
+            {
+              cwd: repoRoot,
+              encoding: 'utf8',
+              stdio: 'pipe',
+              env: {
+                ...process.env,
+                GIT_AUTHOR_NAME: authorClean,
+                GIT_AUTHOR_EMAIL: 'developer@sprintstack.local',
+                GIT_COMMITTER_NAME: authorClean,
+                GIT_COMMITTER_EMAIL: 'developer@sprintstack.local'
+              }
+            }
+          );
+
+          if (treeCommitRes.status !== 0) {
+            throw new Error(treeCommitRes.stderr || 'commit-tree failed');
+          }
+
+          const commitSha = (treeCommitRes.stdout || '').trim();
+          fullHash = commitSha;
+          shortHash = commitSha.substring(0, 7);
+
+          const pushRes = spawnSync(
+            'git',
+            ['push', targetGitUrl, `${commitSha}:refs/heads/${targetBranch}`],
+            { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 45000 }
+          );
+          if (pushRes.status === 0) {
+            pushSuccess = true;
+            console.log(`✓ Real Git commit #${shortHash} pushed successfully to connected repo ${targetClean} on branch '${targetBranch}'!`);
+          } else {
+            pushError = (pushRes.stderr || pushRes.stdout || 'Failed to push to connected repo').trim();
+            console.error(`Push to connected repo failed:`, pushError);
+          }
+        } catch (treeErr) {
+          console.error('Error creating tree commit for connected repo:', treeErr);
+          pushError = treeErr.message;
         }
       } else {
-        pushError = errOut;
+        const pushRes = spawnSync(
+          'git',
+          ['push', targetGitUrl, `HEAD:refs/heads/${targetBranch}`],
+          { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 45000 }
+        );
+        if (pushRes.status === 0) {
+          pushSuccess = true;
+          try {
+            shortHash = execSync('git rev-parse --short HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+            fullHash = execSync('git rev-parse HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+          } catch {
+            shortHash = Math.random().toString(36).substring(2, 9);
+            fullHash = shortHash;
+          }
+        } else {
+          pushError = (pushRes.stderr || pushRes.stdout || 'Failed to push to connected repo').trim();
+        }
       }
     }
 
-    const commitUrl = cleanWebRepo && fullHash ? `${cleanWebRepo}/commit/${fullHash}` : '';
+    const commitUrl = targetClean && fullHash ? `${targetClean}/commit/${fullHash}` : '';
 
     return {
       commitHash: shortHash,
       fullHash,
       pushSuccess,
       pushError,
-      repoUrl: cleanWebRepo,
+      repoUrl: targetClean,
       commitUrl
     };
   } catch (err) {
@@ -397,7 +512,7 @@ async function completeTasksViaCommit({ commitMessage, commitHash, author, repoU
 // Git Commit Handler (Direct from web UI)
 async function handleCommitRequest(req, res) {
   try {
-    const { commitMessage, author, branch } = req.body;
+    const { commitMessage, author, branch, repoUrl } = req.body;
     if (!commitMessage || !commitMessage.trim()) {
       return res.status(400).json({ message: 'Commit message is required' });
     }
@@ -405,7 +520,8 @@ async function handleCommitRequest(req, res) {
     const realResult = await executeRealGitCommitAndPush({
       commitMessage: commitMessage.trim(),
       author: author || req.user?.username || 'developer',
-      branch: branch || 'main'
+      branch: branch || 'main',
+      repoUrl: repoUrl || ''
     });
 
     const updatedTasks = await completeTasksViaCommit({

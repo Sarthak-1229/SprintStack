@@ -250,7 +250,7 @@ export const TaskProvider = ({ children }) => {
   };
 
   // Dispatch / Simulate Git Commit
-  const simulateCommit = async ({ commitMessage, author, branch }) => {
+  const simulateCommit = async ({ commitMessage, author, branch, repoUrl }) => {
     if (!currentProject?.id) return { success: false, message: 'No project selected' };
 
     try {
@@ -263,7 +263,8 @@ export const TaskProvider = ({ children }) => {
         body: JSON.stringify({
           commitMessage,
           author: author || user?.username,
-          branch: branch || 'main'
+          branch: branch || 'main',
+          repoUrl: repoUrl || currentProject.githubRepo || ''
         })
       });
       const data = await res.json();
