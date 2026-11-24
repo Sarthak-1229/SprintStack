@@ -386,13 +386,16 @@ app.post("/api/projects", requireAuth, async (req, res) => {
       exists = await Project.findOne({ code });
     }
 
+    const defaultOwner = getDefaultGitOwner(findGitRepoRoot(__dirname));
+    const repoClean = githubRepo.trim() ? normalizeGitHubRepo(githubRepo.trim(), defaultOwner) : "";
+
     const project = new Project({
       name: name.trim(),
       description: description.trim(),
       code,
       owner: req.user.id,
       ownerUsername: req.user.username,
-      githubRepo: githubRepo.trim(),
+      githubRepo: repoClean,
       taskCounter: 100,
       members: [
         {
@@ -465,6 +468,63 @@ app.get("/api/projects/:id", requireAuth, async (req, res) => {
     res.json(project.toJSON());
   } catch (error) {
     res.status(500).json({ message: "Server error loading project details" });
+  }
+});
+
+// Update Project Details (Admin or Owner only)
+app.put("/api/projects/:projectId", requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const isOwner = project.ownerUsername === req.user.username;
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Only the project owner or an admin can edit project details" });
+    }
+
+    const { name, description, githubRepo } = req.body;
+    if (name && name.trim()) project.name = name.trim();
+    if (description !== undefined) project.description = description.trim();
+    if (githubRepo !== undefined) {
+      const defaultOwner = getDefaultGitOwner(findGitRepoRoot(__dirname));
+      project.githubRepo = githubRepo.trim() ? normalizeGitHubRepo(githubRepo.trim(), defaultOwner) : "";
+    }
+
+    await project.save();
+    const projectObj = project.toJSON();
+    io.emit("project:updated", projectObj);
+    res.json({ success: true, project: projectObj });
+  } catch (error) {
+    console.error("Update project error:", error);
+    res.status(500).json({ message: "Server error updating project" });
+  }
+});
+
+// Delete Project (Admin or Owner only)
+app.delete("/api/projects/:projectId", requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const isOwner = project.ownerUsername === req.user.username;
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Only the project owner or an admin can delete this project" });
+    }
+
+    // Cascade delete associated tasks and commit logs
+    await Task.deleteMany({ projectId: project._id });
+    await CommitLog.deleteMany({ projectId: project._id });
+    await Project.findByIdAndDelete(project._id);
+
+    io.emit("project:deleted", { projectId: project._id.toString() });
+    res.json({ success: true, message: `Project '${project.name}' deleted successfully`, projectId: project._id.toString() });
+  } catch (error) {
+    console.error("Delete project error:", error);
+    res.status(500).json({ message: "Server error deleting project" });
   }
 });
 
@@ -682,16 +742,11 @@ function getDefaultGitOwner(repoRoot) {
   return "Sarthak-1229";
 }
 
-// Normalize any repository input (full URL, owner/repo, bare name, or typo like locorep -> locrep)
+// Normalize any repository input (full URL, owner/repo, bare name)
 function normalizeGitHubRepo(repoUrl, defaultOwner = "Sarthak-1229") {
   if (!repoUrl || typeof repoUrl !== "string") return "";
   let clean = repoUrl.trim();
   if (!clean) return "";
-
-  // Fix typo "locorep" -> "locrep"
-  if (/locorep/i.test(clean)) {
-    clean = clean.replace(/locorep/gi, "locrep");
-  }
 
   // SSH url -> HTTPS
   clean = clean.replace(/^git@github\.com:/, "https://github.com/");
@@ -908,7 +963,7 @@ async function executeRealGitCommitAndPush({ commitMessage, author, branch = "ma
 }
 
 // Reusable commit processing logic
-async function processCommit({ projectId, commitHash, commitMessage, author, branch = "main", repoUrl = "", source = "simulator" }) {
+async function processCommit({ projectId, commitHash, commitMessage, author, branch = "main", repoUrl = "", source = "simulator", committedAt = null }) {
   const matchedTaskIds = extractTaskIds(commitMessage);
   const updatedTasks = [];
 
@@ -922,6 +977,16 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
   const commitUrl = realGitResult?.commitUrl || (finalRepoUrl ? `${finalRepoUrl}/commit/${shortHash}` : "");
   const pushedToGitHub = realGitResult ? realGitResult.pushSuccess : (source === "webhook");
 
+  // Dedup: If already logged for this project via polling or webhook, avoid duplicate tasks processing
+  if ((source === "github-poll" || source === "webhook") && projectId && shortHash) {
+    const existingLog = await CommitLog.findOne({ projectId, commitHash: shortHash });
+    if (existingLog) {
+      return { matchedTaskIds: [], updatedTasks: [], commitHash: shortHash, commitUrl, pushedToGitHub };
+    }
+  }
+
+  const commitTimestamp = committedAt ? new Date(committedAt).getTime() : Date.now();
+
   for (const tid of matchedTaskIds) {
     // Find active task in this project (or across projects if webhook/poll)
     const query = { taskId: tid, status: { $ne: "Done" } };
@@ -929,12 +994,20 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
 
     const tasks = await Task.find(query);
     for (const task of tasks) {
+      // TIMESTAMP GATING:
+      // Prevent past commits from completing tasks that were created after the commit occurred
+      const taskCreatedTime = new Date(task.createdAt || 0).getTime();
+      if (commitTimestamp + 60000 < taskCreatedTime) {
+        console.log(`[processCommit] Skipping ${task.taskId}: commit date (${new Date(commitTimestamp).toISOString()}) predates task creation (${new Date(taskCreatedTime).toISOString()})`);
+        continue;
+      }
+
       task.status = "Done";
       task.commitInfo = {
         commitHash: shortHash,
         commitMessage,
         author: author || "Developer",
-        committedAt: new Date(),
+        committedAt: committedAt ? new Date(committedAt) : new Date(),
         repoUrl: finalRepoUrl,
         commitUrl
       };
@@ -956,35 +1029,42 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
     }
   }
 
-  // If no task IDs matched, try fuzzy matching active task titles
+  // If no task IDs matched, check for explicit directive matching (e.g. fixes: "Task Title")
   if (matchedTaskIds.length === 0) {
     const query = { status: { $ne: "Done" } };
     if (projectId) query.projectId = projectId;
     const activeTasks = await Task.find(query);
     for (const t of activeTasks) {
-      if (t.title && commitMessage.toLowerCase().includes(t.title.toLowerCase().trim())) {
-        t.status = "Done";
-        t.commitInfo = {
-          commitHash: shortHash,
-          commitMessage,
-          author: author || "Developer",
-          committedAt: new Date(),
-          repoUrl: finalRepoUrl,
-          commitUrl
-        };
-        await t.save();
-        const taskObj = t.toJSON();
-        updatedTasks.push(taskObj);
+      const cleanTitle = (t.title || "").trim();
+      if (cleanTitle.length >= 5) {
+        const directiveRegex = new RegExp(`(?:fixes|closes|resolves):?\\s*["']?${cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']?`, "i");
+        if (directiveRegex.test(commitMessage)) {
+          const taskCreatedTime = new Date(t.createdAt || 0).getTime();
+          if (commitTimestamp + 60000 < taskCreatedTime) continue;
 
-        io.to(`project:${t.projectId.toString()}`).emit("task:updated", taskObj);
-        io.to(`project:${t.projectId.toString()}`).emit("task:completed_by_commit", {
-          task: taskObj,
-          commitHash: shortHash,
-          commitMessage,
-          author,
-          commitUrl,
-          pushedToGitHub
-        });
+          t.status = "Done";
+          t.commitInfo = {
+            commitHash: shortHash,
+            commitMessage,
+            author: author || "Developer",
+            committedAt: committedAt ? new Date(committedAt) : new Date(),
+            repoUrl: finalRepoUrl,
+            commitUrl
+          };
+          await t.save();
+          const taskObj = t.toJSON();
+          updatedTasks.push(taskObj);
+
+          io.to(`project:${t.projectId.toString()}`).emit("task:updated", taskObj);
+          io.to(`project:${t.projectId.toString()}`).emit("task:completed_by_commit", {
+            task: taskObj,
+            commitHash: shortHash,
+            commitMessage,
+            author,
+            commitUrl,
+            pushedToGitHub
+          });
+        }
       }
     }
   }
@@ -1060,6 +1140,7 @@ async function syncProjectGitHubCommits(projectId) {
       const commitMsg = c.commit?.message || "";
       const commitHash = c.sha ? c.sha.substring(0, 7) : "";
       const author = c.commit?.author?.name || c.author?.login || "Colleague";
+      const commitDate = c.commit?.author?.date || c.commit?.committer?.date || null;
 
       const resComm = await processCommit({
         projectId,
@@ -1068,7 +1149,8 @@ async function syncProjectGitHubCommits(projectId) {
         author,
         branch: "main",
         repoUrl: repoClean,
-        source: "github-poll"
+        source: "github-poll",
+        committedAt: commitDate
       });
 
       if (resComm.updatedTasks?.length > 0) {
@@ -1166,7 +1248,8 @@ app.post("/api/projects/:projectId/webhook", async (req, res) => {
         author: commit.author?.name || commit.author?.username || "GitHub Committer",
         branch: payload.ref ? payload.ref.replace("refs/heads/", "") : "main",
         repoUrl: payload.repository?.html_url || project.githubRepo,
-        source: "webhook"
+        source: "webhook",
+        committedAt: commit.timestamp || null
       });
       results.push(resComm);
     }

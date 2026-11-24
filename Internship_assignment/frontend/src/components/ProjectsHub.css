@@ -508,3 +508,73 @@
   background: #ffe600;
 }
 
+/* Quick Actions on Project Cards */
+.card-actions-quick {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.card-quick-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--accent-black, #1D1D1D);
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: 1.5px 1.5px 0 var(--accent-black, #1D1D1D);
+  padding: 0;
+}
+
+.card-quick-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2.5px 2.5px 0 var(--accent-black, #1D1D1D);
+}
+
+.card-quick-btn.edit:hover {
+  background: var(--accent-yellow, #F0D700);
+}
+
+.card-quick-btn.delete {
+  color: var(--accent-red, #E1251B);
+}
+
+.card-quick-btn.delete:hover {
+  background: var(--accent-red, #E1251B);
+  color: #ffffff;
+}
+
+.modal-danger-btn {
+  padding: 0.65rem 1.25rem;
+  background: var(--accent-red, #E1251B);
+  color: #ffffff;
+  border: 2px solid var(--accent-black, #1D1D1D);
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--accent-black, #1D1D1D);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.modal-danger-btn:hover {
+  background: #c81d14;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--accent-black, #1D1D1D);
+}
+
+.modal-warning-box {
+  background: #fff1f0;
+  border: 2px dashed var(--accent-red, #E1251B);
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: var(--accent-black, #1D1D1D);
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+}
+
+

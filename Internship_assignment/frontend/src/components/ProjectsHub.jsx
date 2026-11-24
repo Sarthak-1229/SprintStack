@@ -13,12 +13,14 @@ import {
   Folder,
   ArrowRight,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Trash2,
+  Edit3
 } from 'lucide-react';
 import './ProjectsHub.css';
 
 function ProjectsHub({ onSelectProject }) {
-  const { projects, currentProject, selectProject, createProject, joinProject, loading } = useProject();
+  const { projects, currentProject, selectProject, createProject, joinProject, deleteProject, updateProject, loading } = useProject();
   const { user } = useAuth();
 
   const [joinCode, setJoinCode] = useState('');
@@ -32,7 +34,75 @@ function ProjectsHub({ onSelectProject }) {
   const [createError, setCreateError] = useState('');
   const [copiedCode, setCopiedCode] = useState(null);
 
+  // Delete Project Confirmation Modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  // Edit Project Modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editRepo, setEditRepo] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
   const isAdmin = user?.role === 'admin';
+
+  const handleOpenDelete = (proj, e) => {
+    e.stopPropagation();
+    setProjectToDelete(proj);
+    setDeleteError('');
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+    setDeleteLoading(true);
+    setDeleteError('');
+    const res = await deleteProject(projectToDelete.id || projectToDelete._id);
+    setDeleteLoading(false);
+    if (res.success) {
+      setDeleteModalOpen(false);
+      setProjectToDelete(null);
+    } else {
+      setDeleteError(res.message || 'Failed to delete project');
+    }
+  };
+
+  const handleOpenEdit = (proj, e) => {
+    e.stopPropagation();
+    setEditingProject(proj);
+    setEditName(proj.name || '');
+    setEditDesc(proj.description || '');
+    setEditRepo(proj.githubRepo || '');
+    setEditError('');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      setEditError('Project name is required');
+      return;
+    }
+    setEditLoading(true);
+    setEditError('');
+    const res = await updateProject(editingProject.id || editingProject._id, {
+      name: editName.trim(),
+      description: editDesc.trim(),
+      githubRepo: editRepo.trim()
+    });
+    setEditLoading(false);
+    if (res.success) {
+      setEditModalOpen(false);
+      setEditingProject(null);
+    } else {
+      setEditError(res.message || 'Failed to update project');
+    }
+  };
 
   const handleJoin = async (e) => {
     e.preventDefault();
@@ -215,13 +285,34 @@ function ProjectsHub({ onSelectProject }) {
                       </button>
                     </div>
 
-                    <span
-                      className={`project-role-tag ${isOwner ? 'owner' : 'member'}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: '3px' }}
-                    >
-                      {isOwner ? <ShieldCheck size={11} /> : <Zap size={11} />}
-                      <span>{isOwner ? 'LEAD / OWNER' : 'MEMBER'}</span>
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span
+                        className={`project-role-tag ${isOwner ? 'owner' : 'member'}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '3px' }}
+                      >
+                        {isOwner ? <ShieldCheck size={11} /> : <Zap size={11} />}
+                        <span>{isOwner ? 'LEAD / OWNER' : 'MEMBER'}</span>
+                      </span>
+
+                      {(isOwner || isAdmin) && (
+                        <div className="card-actions-quick" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="card-quick-btn edit"
+                            title="Edit Project Details & Repository"
+                            onClick={(e) => handleOpenEdit(proj, e)}
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                          <button
+                            className="card-quick-btn delete"
+                            title="Delete Project & Workspaces"
+                            onClick={(e) => handleOpenDelete(proj, e)}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Title & Desc */}
@@ -231,12 +322,34 @@ function ProjectsHub({ onSelectProject }) {
                   </p>
 
                   {/* GitHub Repo */}
-                  {proj.githubRepo && (
+                  {proj.githubRepo ? (
                     <div className="project-repo-link" onClick={(e) => e.stopPropagation()}>
                       <GitBranch size={13} className="repo-icon" />
                       <a href={proj.githubRepo} target="_blank" rel="noreferrer">
                         {proj.githubRepo.replace(/^https?:\/\/github.com\//, '')}
                       </a>
+                    </div>
+                  ) : (
+                    <div className="project-repo-link" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--text-muted, #888)' }}>
+                      <GitBranch size={13} className="repo-icon" />
+                      <span style={{ fontSize: '0.78rem' }}>No repo linked</span>
+                      {(isOwner || isAdmin) && (
+                        <button
+                          onClick={(e) => handleOpenEdit(proj, e)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent-blue, #0056A3)',
+                            textDecoration: 'underline',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.78rem',
+                            marginLeft: '0.4rem'
+                          }}
+                        >
+                          + Connect
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -337,11 +450,11 @@ function ProjectsHub({ onSelectProject }) {
               <div className="form-group">
                 <label className="form-label">GitHub Repository URL (Optional)</label>
                 <input
-                  type="url"
+                  type="text"
                   value={newProjectRepo}
                   onChange={(e) => setNewProjectRepo(e.target.value)}
                   className="auth-input"
-                  placeholder="https://github.com/organization/repository"
+                  placeholder="https://github.com/owner/repository or repo-name"
                 />
                 <span className="field-hint">
                   Linked repo will receive git commits and trigger automated task completion.
@@ -362,6 +475,150 @@ function ProjectsHub({ onSelectProject }) {
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 >
                   <span>Generate Project & Code</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Project Confirmation */}
+      {deleteModalOpen && projectToDelete && (
+        <div className="modal-backdrop" onClick={() => !deleteLoading && setDeleteModalOpen(false)}>
+          <div className="modal-content hub-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-red, #E1251B)' }}>
+                <AlertTriangle size={18} />
+                <span>Delete Project Workspace</span>
+              </h3>
+              <button
+                className="modal-close-btn"
+                disabled={deleteLoading}
+                onClick={() => setDeleteModalOpen(false)}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {deleteError && (
+              <div className="modal-error-banner" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <AlertTriangle size={15} />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="modal-warning-box">
+              <p>
+                Are you sure you want to permanently delete project <strong>{projectToDelete.name}</strong> [{projectToDelete.code}]?
+              </p>
+              <p style={{ marginTop: '0.5rem', fontWeight: 'bold', color: 'var(--accent-red, #E1251B)' }}>
+                ⚠️ This action cannot be undone. All tasks, sprint boards, and commit history for this project will be deleted immediately.
+              </p>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="modal-cancel-btn"
+                disabled={deleteLoading}
+                onClick={() => setDeleteModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="modal-danger-btn"
+                disabled={deleteLoading}
+                onClick={handleConfirmDelete}
+              >
+                <Trash2 size={14} />
+                <span>{deleteLoading ? 'Deleting...' : 'Permanently Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Project */}
+      {editModalOpen && editingProject && (
+        <div className="modal-backdrop" onClick={() => !editLoading && setEditModalOpen(false)}>
+          <div className="modal-content hub-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Edit3 size={18} />
+                <span>Edit Project Details & Repository</span>
+              </h3>
+              <button
+                className="modal-close-btn"
+                disabled={editLoading}
+                onClick={() => setEditModalOpen(false)}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="modal-error-banner" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <AlertTriangle size={15} />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="modal-form">
+              <div className="form-group">
+                <label className="form-label">Project Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="auth-input"
+                  placeholder="e.g. Distributed Task Scheduler"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Project Scope & Description</label>
+                <textarea
+                  rows={3}
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="auth-input"
+                  placeholder="Describe the project objectives, tech stack, and milestones..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Connected GitHub Repository</label>
+                <input
+                  type="text"
+                  value={editRepo}
+                  onChange={(e) => setEditRepo(e.target.value)}
+                  className="auth-input"
+                  placeholder="https://github.com/owner/repository or repo-name"
+                />
+                <span className="field-hint">
+                  Link an exact GitHub repository URL. Commits made will automatically transition linked tasks to DONE.
+                </span>
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="modal-cancel-btn"
+                  disabled={editLoading}
+                  onClick={() => setEditModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="modal-submit-btn"
+                  disabled={editLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <span>{editLoading ? 'Saving...' : 'Save Changes'}</span>
                   <ArrowRight size={14} />
                 </button>
               </div>

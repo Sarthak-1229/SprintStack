@@ -155,7 +155,7 @@ curl -s -X POST "${commitApiUrl}" \\
           <div className="git-repo-pill">
             <FolderGit2 size={15} className="repo-icon" />
             <span className="repo-url">
-              {currentProject.githubRepo || 'https://github.com/SprintStack/project-repo'}
+              {currentProject.githubRepo || 'No GitHub repository connected'}
             </span>
           </div>
           <button
@@ -241,13 +241,15 @@ curl -s -X POST "${commitApiUrl}" \\
                     <span className="term-dot dot-yellow"></span>
                     <span className="term-dot dot-green"></span>
                   </div>
-                  <span className="terminal-title">developer@{user?.username || 'user'}: ~/repo (branch: {branch})</span>
+                  <span className="terminal-title">
+                    developer@{user?.username || 'user'}: ~/{currentProject.githubRepo ? currentProject.githubRepo.replace(/^https?:\/\/github.com\//, '') : 'repo'} (branch: {branch})
+                  </span>
                 </div>
 
                 <div className="terminal-body">
                   <div className="terminal-intro">
-                    <p># Type a commit message mentioning the Task ID (e.g. <code>TASK-102: ...</code>).</p>
-                    <p># Pushing this commit triggers the webhook and automatically marks the task as <strong>DONE</strong>.</p>
+                    <p># Target Repository: <strong>{currentProject.githubRepo || 'No external repo connected (local fallback)'}</strong></p>
+                    <p># Type a commit message mentioning the Task ID (e.g. <code>TASK-102: ...</code>) to push and auto-transition to <strong>DONE</strong>.</p>
                   </div>
 
                   {/* Task Quick-Selector */}

@@ -118,6 +118,62 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
+  const deleteProject = async (projectId) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete project');
+
+      // Update state and clean local storage
+      try {
+        localStorage.removeItem(`sprintstack_tasks_${projectId}`);
+      } catch {}
+
+      setProjects((prev) => {
+        const remaining = prev.filter((p) => p.id !== projectId && p._id !== projectId);
+        if (currentProject && (currentProject.id === projectId || currentProject._id === projectId)) {
+          const nextProject = remaining.length > 0 ? remaining[0] : null;
+          selectProject(nextProject);
+        }
+        return remaining;
+      });
+
+      return { success: true, message: data.message };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
+  const updateProject = async (projectId, updateData) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(updateData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update project');
+
+      const updated = data.project;
+      setProjects((prev) => prev.map((p) => (p.id === projectId || p._id === projectId ? updated : p)));
+      if (currentProject && (currentProject.id === projectId || currentProject._id === projectId)) {
+        selectProject(updated);
+      }
+
+      return { success: true, project: updated };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
   return (
     <ProjectContext.Provider
       value={{
@@ -128,7 +184,9 @@ export const ProjectProvider = ({ children }) => {
         error,
         fetchProjects,
         createProject,
-        joinProject
+        joinProject,
+        deleteProject,
+        updateProject
       }}
     >
       {children}

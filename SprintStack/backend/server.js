@@ -201,20 +201,15 @@ function getDefaultGitOwner(repoRoot) {
     const originUrl = execSync('git remote get-url origin', { cwd: repoRoot, encoding: 'utf8' }).trim();
     const match = originUrl.match(/github\.com[/:]([^/]+)\//i);
     if (match && match[1]) return match[1];
-  } catch {}
+  } catch { }
   return 'Sarthak-1229';
 }
 
-// Normalize any repository input (full URL, owner/repo, bare name, or typo like locorep -> locrep)
+// Normalize any repository input (full URL, owner/repo, bare name)
 function normalizeGitHubRepo(repoUrl, defaultOwner = 'Sarthak-1229') {
   if (!repoUrl || typeof repoUrl !== 'string') return '';
   let clean = repoUrl.trim();
   if (!clean) return '';
-
-  // Fix typo "locorep" -> "locrep"
-  if (/locorep/i.test(clean)) {
-    clean = clean.replace(/locorep/gi, 'locrep');
-  }
 
   // SSH url -> HTTPS
   clean = clean.replace(/^git@github\.com:/, 'https://github.com/');
@@ -252,7 +247,7 @@ async function executeRealGitCommitAndPush({ commitMessage, author, branch = 'ma
     let originUrl = '';
     try {
       originUrl = execSync('git remote get-url origin', { cwd: repoRoot, encoding: 'utf8' }).trim();
-    } catch {}
+    } catch { }
 
     const cleanOrigin = originUrl.replace(/\.git$/, '').replace(/^git@github\.com:/, 'https://github.com/');
     const targetClean = repoUrl ? normalizeGitHubRepo(repoUrl, defaultOwner) : cleanOrigin;
@@ -340,7 +335,7 @@ async function executeRealGitCommitAndPush({ commitMessage, author, branch = 'ma
           { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 30000 }
         );
         fetchSuccess = (fetchRes.status === 0);
-      } catch {}
+      } catch { }
 
       if (fetchSuccess) {
         try {
@@ -443,21 +438,25 @@ function extractTaskIds(message) {
 }
 
 // Automatically match tasks and update them directly to Done
-async function completeTasksViaCommit({ commitMessage, commitHash, author, repoUrl = '', commitUrl = '' }) {
+async function completeTasksViaCommit({ commitMessage, commitHash, author, repoUrl = '', commitUrl = '', committedAt = null }) {
   const matchedTaskIds = extractTaskIds(commitMessage);
   const updatedTasks = [];
+  const commitTimestamp = committedAt ? new Date(committedAt).getTime() : Date.now();
 
   if (matchedTaskIds.length > 0) {
     for (const tid of matchedTaskIds) {
       if (!useLocalStore) {
         const tasks = await Task.find({ taskId: tid, status: { $ne: 'Done' } });
         for (const task of tasks) {
+          const taskCreatedTime = new Date(task.createdAt || 0).getTime();
+          if (commitTimestamp + 60000 < taskCreatedTime) continue;
+
           task.status = 'Done';
           task.commitInfo = {
             commitHash,
             commitMessage,
             author: author || 'developer',
-            committedAt: new Date(),
+            committedAt: committedAt ? new Date(committedAt) : new Date(),
             repoUrl,
             commitUrl
           };
@@ -468,12 +467,15 @@ async function completeTasksViaCommit({ commitMessage, commitHash, author, repoU
         await updateLocalStore((state) => {
           const matching = state.tasks.filter((t) => t.taskId === tid && t.status !== 'Done');
           for (const task of matching) {
+            const taskCreatedTime = new Date(task.createdAt || 0).getTime();
+            if (commitTimestamp + 60000 < taskCreatedTime) continue;
+
             task.status = 'Done';
             task.commitInfo = {
               commitHash,
               commitMessage,
               author: author || 'developer',
-              committedAt: new Date().toISOString(),
+              committedAt: committedAt ? new Date(committedAt).toISOString() : new Date().toISOString(),
               repoUrl,
               commitUrl
             };
@@ -484,24 +486,31 @@ async function completeTasksViaCommit({ commitMessage, commitHash, author, repoU
       }
     }
   } else {
-    // Fuzzy matching by active task title
+    // Exact directive matching (e.g. fixes: "Task Title")
     const allTasks = await listTasks();
     const activeTasks = allTasks.filter((t) => t.status !== 'Done');
     for (const t of activeTasks) {
-      if (t.title && commitMessage.toLowerCase().includes(t.title.toLowerCase().trim())) {
-        const idToUpdate = t.id || t._id;
-        const updated = await updateTask(idToUpdate, {
-          status: 'Done',
-          commitInfo: {
-            commitHash,
-            commitMessage,
-            author: author || 'developer',
-            committedAt: new Date().toISOString(),
-            repoUrl,
-            commitUrl
-          }
-        });
-        if (updated) updatedTasks.push(updated);
+      const cleanTitle = (t.title || '').trim();
+      if (cleanTitle.length >= 5) {
+        const directiveRegex = new RegExp(`(?:fixes|closes|resolves):?\\s*["']?${cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']?`, 'i');
+        if (directiveRegex.test(commitMessage)) {
+          const taskCreatedTime = new Date(t.createdAt || 0).getTime();
+          if (commitTimestamp + 60000 < taskCreatedTime) continue;
+
+          const idToUpdate = t.id || t._id;
+          const updated = await updateTask(idToUpdate, {
+            status: 'Done',
+            commitInfo: {
+              commitHash,
+              commitMessage,
+              author: author || 'developer',
+              committedAt: committedAt ? new Date(committedAt).toISOString() : new Date().toISOString(),
+              repoUrl,
+              commitUrl
+            }
+          });
+          if (updated) updatedTasks.push(updated);
+        }
       }
     }
   }
@@ -582,6 +591,7 @@ async function syncGitHubRepoCommits(repoInput) {
       const commitMsg = c.commit?.message || '';
       const commitHash = c.sha ? c.sha.substring(0, 7) : '';
       const author = c.commit?.author?.name || c.author?.login || 'Colleague';
+      const commitDate = c.commit?.author?.date || c.commit?.committer?.date || null;
       const commitUrl = c.html_url || `${repoClean}/commit/${c.sha}`;
 
       const updated = await completeTasksViaCommit({
@@ -589,7 +599,8 @@ async function syncGitHubRepoCommits(repoInput) {
         commitHash,
         author,
         repoUrl: repoClean,
-        commitUrl
+        commitUrl,
+        committedAt: commitDate
       });
       totalUpdated += updated.length;
     }
