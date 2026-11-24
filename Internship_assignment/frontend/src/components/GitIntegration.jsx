@@ -277,13 +277,33 @@ curl -s -X POST "${commitApiUrl}" \\
                     <div className={`terminal-output ${lastResult.success ? 'success' : 'error'}`}>
                       {lastResult.success ? (
                         <>
-                          <div className="term-out-line">✓ [remote: webhook] Commit accepted!</div>
                           <div className="term-out-line">
-                            ➔ Linked Task(s): <strong>{lastResult.matched.join(', ') || 'None'}</strong> moved to <strong>Done</strong>
+                            {lastResult.pushedToGitHub ? '✓ [remote: GitHub] Real commit pushed to GitHub repository!' : '✓ [remote: webhook] Commit accepted!'}
                           </div>
                           <div className="term-out-line">
-                            ➔ Commit SHA: <code>#{lastResult.commit?.commitHash}</code>
+                            ➔ Linked Task(s): <strong>{lastResult.matched?.join(', ') || 'None'}</strong> moved to <strong>Done</strong>
                           </div>
+                          <div className="term-out-line">
+                            ➔ Commit SHA: <code>#{lastResult.commit?.commitHash || lastResult.commitHash}</code>
+                          </div>
+                          {(lastResult.commitUrl || lastResult.commit?.commitUrl) && (
+                            <div className="term-out-line" style={{ marginTop: '0.4rem' }}>
+                              ➔ GitHub URL:{' '}
+                              <a
+                                href={lastResult.commitUrl || lastResult.commit?.commitUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#38bdf8', textDecoration: 'underline', fontWeight: 'bold' }}
+                              >
+                                View Commit on GitHub ↗
+                              </a>
+                            </div>
+                          )}
+                          {lastResult.pushError && (
+                            <div className="term-out-line error" style={{ color: '#f87171', marginTop: '0.3rem' }}>
+                              ⚠️ Push status: {lastResult.pushError}
+                            </div>
+                          )}
                         </>
                       ) : (
                         <div className="term-out-line error">
@@ -504,10 +524,24 @@ curl -s -X POST "${commitApiUrl}" \\
                         <span className="commit-author-name">{c.author}</span>
                       </div>
 
-                      <span className="commit-hash" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <GitCommit size={11} />
-                        <span>#{c.commitHash ? c.commitHash.substring(0, 7) : 'head'}</span>
-                      </span>
+                      {c.commitUrl || (c.repoUrl && c.commitHash) ? (
+                        <a
+                          href={c.commitUrl || `${c.repoUrl.replace(/\.git$/, '')}/commit/${c.commitHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="commit-hash"
+                          title="View on GitHub"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', textDecoration: 'none', color: 'inherit' }}
+                        >
+                          <GitCommit size={11} />
+                          <span>#{c.commitHash ? c.commitHash.substring(0, 7) : 'head'} ↗</span>
+                        </a>
+                      ) : (
+                        <span className="commit-hash" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <GitCommit size={11} />
+                          <span>#{c.commitHash ? c.commitHash.substring(0, 7) : 'head'}</span>
+                        </span>
+                      )}
                     </div>
 
                     <p className="commit-message-text">{c.commitMessage}</p>

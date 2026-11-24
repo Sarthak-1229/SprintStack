@@ -13,8 +13,10 @@ const commitLogSchema = new mongoose.Schema(
     author: { type: String, default: "Anonymous" },
     matchedTasks: [{ type: String }],
     repoUrl: { type: String, default: "" },
+    commitUrl: { type: String, default: "" },
     branch: { type: String, default: "main" },
-    source: { type: String, enum: ["webhook", "simulator"], default: "simulator" }
+    source: { type: String, enum: ["webhook", "simulator"], default: "simulator" },
+    pushedToGitHub: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

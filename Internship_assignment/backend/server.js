@@ -7,6 +7,9 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
+const { spawnSync, execSync } = require("child_process");
 
 const Task = require("./models/Task");
 const User = require("./models/User");
@@ -649,15 +652,160 @@ app.delete("/api/tasks/:id", requireAuth, async (req, res) => {
 });
 
 // ========================
-// GIT & GITHUB WEBHOOK / SIMULATOR
+// GIT & GITHUB PIPELINE (REAL COMMIT & PUSH)
 // ========================
+
+// Locate Git repository root (.git folder)
+function findGitRepoRoot(startDir = __dirname) {
+  let curr = path.resolve(startDir);
+  while (curr) {
+    if (fs.existsSync(path.join(curr, ".git"))) {
+      return curr;
+    }
+    const parent = path.dirname(curr);
+    if (parent === curr) break;
+    curr = parent;
+  }
+  return null;
+}
+
+// Execute a REAL Git commit and push directly to GitHub
+async function executeRealGitCommitAndPush({ commitMessage, author, branch = "main", repoUrl = "" }) {
+  const repoRoot = findGitRepoRoot(__dirname);
+  if (!repoRoot) {
+    console.warn("⚠️ No local .git repository found for", __dirname);
+    return {
+      commitHash: crypto.randomBytes(4).toString("hex"),
+      fullHash: "",
+      pushSuccess: false,
+      pushError: "No local .git directory found",
+      repoUrl: repoUrl || "",
+      commitUrl: ""
+    };
+  }
+
+  try {
+    // 1. Maintain a persistent COMMITS.md ledger in the Git repo
+    const commitsLogFile = path.join(repoRoot, "COMMITS.md");
+    const timestamp = new Date().toISOString();
+    const needsHeader = !fs.existsSync(commitsLogFile);
+    const header = "# SprintStack Git Commit Ledger\n\n| Timestamp | Author | Commit Message |\n|---|---|---|\n";
+    const logRow = `| ${timestamp} | ${author || "developer"} | ${commitMessage.replace(/\|/g, "-")} |\n`;
+    fs.appendFileSync(commitsLogFile, (needsHeader ? header : "") + logRow, "utf8");
+
+    // 2. Stage the COMMITS.md file
+    spawnSync("git", ["add", "COMMITS.md"], { cwd: repoRoot, stdio: "pipe" });
+
+    // 3. Make real git commit using spawnSync (safely handles any quotes or special chars)
+    const authorClean = (author || "developer").replace(/["<>]/g, "");
+    const authorStr = `${authorClean} <developer@sprintstack.local>`;
+    const commitRes = spawnSync(
+      "git",
+      ["commit", "-m", commitMessage, `--author=${authorStr}`, "--allow-empty"],
+      { cwd: repoRoot, encoding: "utf8", stdio: "pipe" }
+    );
+    if (commitRes.error) {
+      console.warn("git commit warning:", commitRes.error.message);
+    }
+
+    // 4. Retrieve real git commit hashes
+    let shortHash = "";
+    let fullHash = "";
+    try {
+      shortHash = execSync("git rev-parse --short HEAD", { cwd: repoRoot, encoding: "utf8" }).trim();
+      fullHash = execSync("git rev-parse HEAD", { cwd: repoRoot, encoding: "utf8" }).trim();
+    } catch {
+      shortHash = crypto.randomBytes(4).toString("hex");
+      fullHash = shortHash;
+    }
+
+    // 5. Determine active origin URL
+    let originUrl = "";
+    try {
+      originUrl = execSync("git remote get-url origin", { cwd: repoRoot, encoding: "utf8" }).trim();
+    } catch {}
+
+    const cleanWebRepo = (originUrl || repoUrl || "")
+      .replace(/\.git$/, "")
+      .replace(/^git@github\.com:/, "https://github.com/");
+
+    // 6. Push to GitHub!
+    let pushSuccess = false;
+    let pushError = null;
+
+    const token = (process.env.GIT_TOKEN || process.env.GITHUB_TOKEN || "").trim();
+    const targetBranch = branch || "main";
+
+    // Attempt standard git push first (works with Windows Credential Manager / SSH)
+    const pushRes = spawnSync(
+      "git",
+      ["push", "origin", `HEAD:${targetBranch}`],
+      { cwd: repoRoot, encoding: "utf8", stdio: "pipe", timeout: 45000 }
+    );
+
+    if (pushRes.status === 0) {
+      pushSuccess = true;
+      console.log(`✓ Real Git commit #${shortHash} pushed successfully to GitHub origin on branch '${targetBranch}'!`);
+    } else {
+      const errOut = (pushRes.stderr || pushRes.stdout || "Git push failed").trim();
+      console.warn(`Standard git push error (${errOut}). Checking token fallback...`);
+
+      if (token && originUrl.includes("github.com")) {
+        const authedUrl = originUrl.replace(/https:\/\/(.*@)?github\.com\//, `https://${token}@github.com/`);
+        const tokenPushRes = spawnSync(
+          "git",
+          ["push", authedUrl, `HEAD:${targetBranch}`],
+          { cwd: repoRoot, encoding: "utf8", stdio: "pipe", timeout: 45000 }
+        );
+        if (tokenPushRes.status === 0) {
+          pushSuccess = true;
+          console.log(`✓ Real Git commit #${shortHash} pushed with token to GitHub origin on branch '${targetBranch}'!`);
+        } else {
+          pushError = (tokenPushRes.stderr || tokenPushRes.stdout || "Token push failed").trim();
+          console.error("Token push also failed:", pushError);
+        }
+      } else {
+        pushError = errOut;
+      }
+    }
+
+    const commitUrl = cleanWebRepo && fullHash ? `${cleanWebRepo}/commit/${fullHash}` : "";
+
+    return {
+      commitHash: shortHash,
+      fullHash,
+      pushSuccess,
+      pushError,
+      repoUrl: cleanWebRepo,
+      commitUrl
+    };
+  } catch (err) {
+    console.error("executeRealGitCommitAndPush error:", err);
+    return {
+      commitHash: crypto.randomBytes(4).toString("hex"),
+      fullHash: "",
+      pushSuccess: false,
+      pushError: err.message,
+      repoUrl: repoUrl || "",
+      commitUrl: ""
+    };
+  }
+}
 
 // Reusable commit processing logic
 async function processCommit({ projectId, commitHash, commitMessage, author, branch = "main", repoUrl = "", source = "simulator" }) {
   const matchedTaskIds = extractTaskIds(commitMessage);
   const updatedTasks = [];
 
-  const shortHash = commitHash || crypto.randomBytes(4).toString("hex");
+  let realGitResult = null;
+  if (source === "simulator") {
+    realGitResult = await executeRealGitCommitAndPush({ commitMessage, author, branch, repoUrl });
+  }
+
+  const shortHash = realGitResult ? realGitResult.commitHash : (commitHash || crypto.randomBytes(4).toString("hex"));
+  const finalRepoUrl = realGitResult?.repoUrl || repoUrl || "";
+  const commitUrl = realGitResult?.commitUrl || (finalRepoUrl ? `${finalRepoUrl}/commit/${shortHash}` : "");
+  const pushedToGitHub = realGitResult ? realGitResult.pushSuccess : (source === "webhook");
 
   for (const tid of matchedTaskIds) {
     // Find task in this project (or across projects if webhook)
@@ -672,7 +820,8 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
         commitMessage,
         author: author || "Developer",
         committedAt: new Date(),
-        repoUrl: repoUrl || ""
+        repoUrl: finalRepoUrl,
+        commitUrl
       };
       await task.save();
 
@@ -685,7 +834,9 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
         task: taskObj,
         commitHash: shortHash,
         commitMessage,
-        author
+        author,
+        commitUrl,
+        pushedToGitHub
       });
     }
   }
@@ -699,19 +850,29 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
       commitMessage,
       author: author || "Developer",
       matchedTasks: matchedTaskIds,
-      repoUrl,
+      repoUrl: finalRepoUrl,
       branch,
-      source
+      source,
+      commitUrl,
+      pushedToGitHub
     });
     await commitLogDoc.save();
 
-    io.to(`project:${projectId}`).emit("git:new_commit", commitLogDoc.toJSON());
+    io.to(`project:${projectId}`).emit("git:new_commit", {
+      ...commitLogDoc.toJSON(),
+      commitUrl,
+      pushedToGitHub
+    });
   }
 
   return {
     matchedTaskIds,
     updatedTasks,
-    commitLog: commitLogDoc ? commitLogDoc.toJSON() : null
+    commitLog: commitLogDoc ? { ...commitLogDoc.toJSON(), commitUrl, pushedToGitHub } : null,
+    commitHash: shortHash,
+    commitUrl,
+    pushedToGitHub,
+    pushError: realGitResult?.pushError || null
   };
 }
 
@@ -730,7 +891,7 @@ app.post("/api/projects/:projectId/commit", requireAuth, async (req, res) => {
 
     const result = await processCommit({
       projectId,
-      commitHash: commitHash || crypto.randomBytes(4).toString("hex"),
+      commitHash,
       commitMessage: commitMessage.trim(),
       author: author || req.user.username,
       branch: branch || "main",
@@ -738,9 +899,15 @@ app.post("/api/projects/:projectId/commit", requireAuth, async (req, res) => {
       source: "simulator"
     });
 
+    const statusMsg = result.pushedToGitHub
+      ? `✓ Commit #${result.commitHash} pushed to GitHub successfully!`
+      : result.pushError
+      ? `Commit #${result.commitHash} recorded locally, but GitHub push error: ${result.pushError}`
+      : `Commit #${result.commitHash} processed! ${result.matchedTaskIds.length} task(s) linked.`;
+
     res.json({
       success: true,
-      message: `Commit processed! ${result.matchedTaskIds.length} task(s) linked.`,
+      message: statusMsg,
       ...result
     });
   } catch (error) {

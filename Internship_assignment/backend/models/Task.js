@@ -64,6 +64,7 @@ const taskSchema = new mongoose.Schema(
       author: { type: String, default: null },
       committedAt: { type: Date, default: null },
       repoUrl: { type: String, default: null },
+      commitUrl: { type: String, default: null },
     },
   },
   {
