@@ -21,13 +21,14 @@ import './GitIntegration.css';
 
 function GitIntegration() {
   const { currentProject } = useProject();
-  const { tasks, commits, simulateCommit } = useTaskContext();
+  const { tasks, commits, simulateCommit, syncGitHub } = useTaskContext();
   const { user, token } = useAuth();
 
   const [selectedTask, setSelectedTask] = useState('');
   const [customMsg, setCustomMsg] = useState('');
   const [branch, setBranch] = useState('main');
   const [isPushing, setIsPushing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -150,11 +151,41 @@ curl -s -X POST "${commitApiUrl}" \\
           </p>
         </div>
 
-        <div className="git-repo-pill">
-          <FolderGit2 size={15} className="repo-icon" />
-          <span className="repo-url">
-            {currentProject.githubRepo || 'https://github.com/SprintStack/project-repo'}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className="git-repo-pill">
+            <FolderGit2 size={15} className="repo-icon" />
+            <span className="repo-url">
+              {currentProject.githubRepo || 'https://github.com/SprintStack/project-repo'}
+            </span>
+          </div>
+          <button
+            onClick={async () => {
+              setIsSyncing(true);
+              try {
+                await syncGitHub();
+              } finally {
+                setIsSyncing(false);
+              }
+            }}
+            disabled={isSyncing}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.85rem',
+              background: '#1D1D1D',
+              color: '#ffffff',
+              border: '2px solid #1D1D1D',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+              boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
+            }}
+            title="Fetch fresh remote commits directly from connected GitHub repository"
+          >
+            <span>{isSyncing ? '⏳' : '🔄'}</span>
+            <span>{isSyncing ? 'Syncing...' : 'Sync GitHub'}</span>
+          </button>
         </div>
       </div>
 

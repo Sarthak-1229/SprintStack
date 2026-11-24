@@ -276,6 +276,26 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
+  // Sync latest remote commits from connected GitHub repository
+  const syncGitHub = async () => {
+    if (!currentProject?.id) return { success: false };
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/projects/${currentProject.id}/sync-github`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      await fetchTasks();
+      await fetchCommits();
+      return data;
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  };
+
   return (
     <TaskContext.Provider
       value={{
@@ -292,7 +312,8 @@ export const TaskProvider = ({ children }) => {
         deleteTask,
         fetchTasks,
         fetchCommits,
-        simulateCommit
+        simulateCommit,
+        syncGitHub
       }}
     >
       {children}

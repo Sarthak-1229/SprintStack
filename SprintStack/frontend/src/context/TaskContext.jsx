@@ -42,5 +42,14 @@ export const TaskProvider = ({ children }) => {
     return result;
   };
 
-  return <TaskContext.Provider value={{ tasks, loading, error, refreshTasks, createTask, updateTask, moveTask, deleteTask, dispatchCommit }}>{children}</TaskContext.Provider>;
+  const syncGitHub = async (repoUrl) => {
+    const result = await request('/api/sync-github', {
+      method: 'POST',
+      body: JSON.stringify({ repoUrl }),
+    });
+    await refreshTasks();
+    return result;
+  };
+
+  return <TaskContext.Provider value={{ tasks, loading, error, refreshTasks, createTask, updateTask, moveTask, deleteTask, dispatchCommit, syncGitHub }}>{children}</TaskContext.Provider>;
 };

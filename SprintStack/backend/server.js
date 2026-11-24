@@ -41,7 +41,7 @@ function updateLocalStore(update) {
     await fs.rename(tempFile, localFile);
     return result;
   });
-  localWrites = operation.catch(() => {});
+  localWrites = operation.catch(() => { });
   return operation;
 }
 
@@ -450,8 +450,8 @@ async function completeTasksViaCommit({ commitMessage, commitHash, author, repoU
   if (matchedTaskIds.length > 0) {
     for (const tid of matchedTaskIds) {
       if (!useLocalStore) {
-        const task = await Task.findOne({ taskId: tid });
-        if (task) {
+        const tasks = await Task.find({ taskId: tid, status: { $ne: 'Done' } });
+        for (const task of tasks) {
           task.status = 'Done';
           task.commitInfo = {
             commitHash,
@@ -466,8 +466,8 @@ async function completeTasksViaCommit({ commitMessage, commitHash, author, repoU
         }
       } else {
         await updateLocalStore((state) => {
-          const task = state.tasks.find((t) => t.taskId === tid);
-          if (task) {
+          const matching = state.tasks.filter((t) => t.taskId === tid && t.status !== 'Done');
+          for (const task of matching) {
             task.status = 'Done';
             task.commitInfo = {
               commitHash,
@@ -535,8 +535,8 @@ async function handleCommitRequest(req, res) {
     const statusMsg = realResult.pushSuccess
       ? `✓ Commit #${realResult.commitHash} pushed to GitHub! ${updatedTasks.length} task(s) completed.`
       : realResult.pushError
-      ? `Commit #${realResult.commitHash} created locally, but GitHub push error: ${realResult.pushError}`
-      : `Commit #${realResult.commitHash} processed! ${updatedTasks.length} task(s) completed.`;
+        ? `Commit #${realResult.commitHash} created locally, but GitHub push error: ${realResult.pushError}`
+        : `Commit #${realResult.commitHash} processed! ${updatedTasks.length} task(s) completed.`;
 
     res.json({
       success: true,
@@ -549,6 +549,61 @@ async function handleCommitRequest(req, res) {
     res.status(500).json({ message: 'Server error processing commit' });
   }
 }
+
+// GitHub REST API Sync Engine (Zero-Configuration Colleague & Remote Commits Sync)
+async function syncGitHubRepoCommits(repoInput) {
+  try {
+    const defaultOwner = getDefaultGitOwner(findGitRepoRoot(__dirname));
+    const repoClean = normalizeGitHubRepo(repoInput || '', defaultOwner);
+    const match = repoClean.match(/github\.com\/([^/]+)\/([^/]+)/i);
+    if (!match) return { synced: 0 };
+
+    const owner = match[1];
+    const repo = match[2].replace(/\.git$/, '');
+
+    const token = (process.env.GIT_TOKEN || process.env.GITHUB_TOKEN || '').trim();
+    const headers = {
+      'User-Agent': 'SprintStack-App',
+      'Accept': 'application/vnd.github.v3+json'
+    };
+    if (token && token.length > 20) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits?per_page=15`;
+    const response = await fetch(apiUrl, { headers });
+    if (!response.ok) return { synced: 0, status: response.status };
+
+    const commits = await response.json();
+    if (!Array.isArray(commits)) return { synced: 0 };
+
+    let totalUpdated = 0;
+    for (const c of commits) {
+      const commitMsg = c.commit?.message || '';
+      const commitHash = c.sha ? c.sha.substring(0, 7) : '';
+      const author = c.commit?.author?.name || c.author?.login || 'Colleague';
+      const commitUrl = c.html_url || `${repoClean}/commit/${c.sha}`;
+
+      const updated = await completeTasksViaCommit({
+        commitMessage: commitMsg,
+        commitHash,
+        author,
+        repoUrl: repoClean,
+        commitUrl
+      });
+      totalUpdated += updated.length;
+    }
+    return { synced: totalUpdated, repo: `${owner}/${repo}` };
+  } catch (err) {
+    return { synced: 0, error: err.message };
+  }
+}
+
+app.post('/api/sync-github', requireAuth, async (req, res) => {
+  const { repoUrl } = req.body;
+  const result = await syncGitHubRepoCommits(repoUrl);
+  res.json({ success: true, ...result });
+});
 
 app.post('/api/commit', requireAuth, handleCommitRequest);
 app.post('/api/projects/:projectId/commit', requireAuth, handleCommitRequest);
@@ -565,7 +620,7 @@ app.post('/api/webhook/git', async (req, res) => {
     let originUrl = '';
     try {
       originUrl = execSync('git remote get-url origin', { cwd: repoRoot, encoding: 'utf8' }).trim();
-    } catch {}
+    } catch { }
     const cleanRepo = originUrl.replace(/\.git$/, '').replace(/^git@github\.com:/, 'https://github.com/');
     const commitUrl = cleanRepo && commitHash ? `${cleanRepo}/commit/${commitHash}` : '';
 

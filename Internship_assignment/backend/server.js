@@ -475,6 +475,9 @@ app.get("/api/projects/:id", requireAuth, async (req, res) => {
 // Get Tasks for a project
 app.get("/api/projects/:projectId/tasks", requireAuth, async (req, res) => {
   try {
+    // Asynchronously trigger GitHub sync for connected project repository
+    syncProjectGitHubCommits(req.params.projectId).catch(() => {});
+
     const tasks = await Task.find({ projectId: req.params.projectId }).sort({ createdAt: 1 });
     res.json(tasks.map((t) => t.toJSON()));
   } catch (error) {
@@ -920,12 +923,12 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
   const pushedToGitHub = realGitResult ? realGitResult.pushSuccess : (source === "webhook");
 
   for (const tid of matchedTaskIds) {
-    // Find task in this project (or across projects if webhook)
-    const query = { taskId: tid };
+    // Find active task in this project (or across projects if webhook/poll)
+    const query = { taskId: tid, status: { $ne: "Done" } };
     if (projectId) query.projectId = projectId;
 
-    const task = await Task.findOne(query);
-    if (task) {
+    const tasks = await Task.find(query);
+    for (const task of tasks) {
       task.status = "Done";
       task.commitInfo = {
         commitHash: shortHash,
@@ -1020,6 +1023,81 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
     pushError: realGitResult?.pushError || null
   };
 }
+
+// GitHub REST API Sync Engine (Zero-Configuration Colleague & Remote Commits Sync)
+async function syncProjectGitHubCommits(projectId) {
+  try {
+    const project = await Project.findById(projectId);
+    if (!project || !project.githubRepo) return { synced: 0 };
+
+    const repoClean = normalizeGitHubRepo(project.githubRepo);
+    const match = repoClean.match(/github\.com\/([^/]+)\/([^/]+)/i);
+    if (!match) return { synced: 0 };
+
+    const owner = match[1];
+    const repo = match[2].replace(/\.git$/, "");
+
+    const token = (process.env.GIT_TOKEN || process.env.GITHUB_TOKEN || "").trim();
+    const headers = {
+      "User-Agent": "SprintStack-App",
+      "Accept": "application/vnd.github.v3+json"
+    };
+    if (token && token.length > 20) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits?per_page=15`;
+    const response = await fetch(apiUrl, { headers });
+    if (!response.ok) {
+      return { synced: 0, status: response.status };
+    }
+
+    const commits = await response.json();
+    if (!Array.isArray(commits)) return { synced: 0 };
+
+    let totalUpdated = 0;
+    for (const c of commits) {
+      const commitMsg = c.commit?.message || "";
+      const commitHash = c.sha ? c.sha.substring(0, 7) : "";
+      const author = c.commit?.author?.name || c.author?.login || "Colleague";
+
+      const resComm = await processCommit({
+        projectId,
+        commitHash,
+        commitMessage: commitMsg,
+        author,
+        branch: "main",
+        repoUrl: repoClean,
+        source: "github-poll"
+      });
+
+      if (resComm.updatedTasks?.length > 0) {
+        totalUpdated += resComm.updatedTasks.length;
+      }
+    }
+
+    return { synced: totalUpdated, repo: `${owner}/${repo}` };
+  } catch (err) {
+    console.error(`GitHub auto-sync error for project ${projectId}:`, err.message);
+    return { synced: 0, error: err.message };
+  }
+}
+
+// Background poller: Syncs connected GitHub repositories every 30 seconds
+setInterval(async () => {
+  try {
+    const projects = await Project.find({ githubRepo: { $exists: true, $ne: "" } }).limit(20);
+    for (const p of projects) {
+      await syncProjectGitHubCommits(p._id);
+    }
+  } catch {}
+}, 30000);
+
+// On-demand GitHub Sync Endpoint
+app.post("/api/projects/:projectId/sync-github", requireAuth, async (req, res) => {
+  const result = await syncProjectGitHubCommits(req.params.projectId);
+  res.json({ success: true, ...result });
+});
 
 // Interactive Git Commit Simulator / Dispatcher (Direct API)
 app.post("/api/projects/:projectId/commit", requireAuth, async (req, res) => {

@@ -68,10 +68,11 @@ function ProgressChart({ tasks }) {
 }
 
 function TaskBoard() {
-  const { tasks, moveTask, loading, error } = useTaskContext();
+  const { tasks, moveTask, loading, error, syncGitHub } = useTaskContext();
   const { user, logout } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [defaultColumn, setDefaultColumn] = useState('To Do');
@@ -140,6 +141,28 @@ function TaskBoard() {
               LOGOUT
             </button>
           </div>
+          <button
+            className="btn btn-secondary"
+            id="sync-github-header-btn"
+            onClick={async () => {
+              setIsSyncing(true);
+              try {
+                await syncGitHub();
+              } finally {
+                setIsSyncing(false);
+              }
+            }}
+            disabled={isSyncing}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 'bold'
+            }}
+            title="Fetch latest remote commits from GitHub to auto-complete tasks"
+          >
+            <span>{isSyncing ? '⏳' : '🔄'}</span> {isSyncing ? 'Syncing...' : 'Sync GitHub'}
+          </button>
           <button
             className="btn btn-secondary"
             id="git-commit-header-btn"
