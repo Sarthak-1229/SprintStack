@@ -82,10 +82,13 @@ async function createTask(data) {
   if (!data.taskId) {
     data.taskId = await getNextTaskId();
   }
+  if (!data.status) {
+    data.status = 'To Do';
+  }
   if (!useLocalStore) return Task.create(data);
   return updateLocalStore((state) => {
     const now = new Date().toISOString();
-    const task = { ...data, id: randomUUID(), createdAt: now, updatedAt: now };
+    const task = { status: 'To Do', ...data, id: randomUUID(), createdAt: now, updatedAt: now };
     state.tasks.push(task);
     return task;
   });
