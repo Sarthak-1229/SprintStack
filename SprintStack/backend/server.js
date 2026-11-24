@@ -69,7 +69,19 @@ async function listTasks() {
   if (!useLocalStore) return Task.find({}).sort({ createdAt: -1 });
   return (await readLocalStore()).tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
+async function getNextTaskId() {
+  if (!useLocalStore) {
+    const count = await Task.countDocuments();
+    return `TASK-${count + 101}`;
+  }
+  const state = await readLocalStore();
+  return `TASK-${(state.tasks?.length || 0) + 101}`;
+}
+
 async function createTask(data) {
+  if (!data.taskId) {
+    data.taskId = await getNextTaskId();
+  }
   if (!useLocalStore) return Task.create(data);
   return updateLocalStore((state) => {
     const now = new Date().toISOString();
@@ -300,7 +312,86 @@ async function executeRealGitCommitAndPush({ commitMessage, author, branch = 'ma
   }
 }
 
-// Git Commit Handler (Works for both /api/commit and /api/projects/:projectId/commit)
+// Extract Task IDs from commit message (e.g. TASK-101, task 102, #103)
+function extractTaskIds(message) {
+  if (!message || typeof message !== 'string') return [];
+  const regex = /(?:TASK|task|#)[ -]?(\d+)/gi;
+  const matches = [];
+  let match;
+  while ((match = regex.exec(message)) !== null) {
+    matches.push(`TASK-${match[1]}`);
+  }
+  return [...new Set(matches)];
+}
+
+// Automatically match tasks and update them directly to Done
+async function completeTasksViaCommit({ commitMessage, commitHash, author, repoUrl = '', commitUrl = '' }) {
+  const matchedTaskIds = extractTaskIds(commitMessage);
+  const updatedTasks = [];
+
+  if (matchedTaskIds.length > 0) {
+    for (const tid of matchedTaskIds) {
+      if (!useLocalStore) {
+        const task = await Task.findOne({ taskId: tid });
+        if (task) {
+          task.status = 'Done';
+          task.commitInfo = {
+            commitHash,
+            commitMessage,
+            author: author || 'developer',
+            committedAt: new Date(),
+            repoUrl,
+            commitUrl
+          };
+          await task.save();
+          updatedTasks.push(task.toJSON());
+        }
+      } else {
+        await updateLocalStore((state) => {
+          const task = state.tasks.find((t) => t.taskId === tid);
+          if (task) {
+            task.status = 'Done';
+            task.commitInfo = {
+              commitHash,
+              commitMessage,
+              author: author || 'developer',
+              committedAt: new Date().toISOString(),
+              repoUrl,
+              commitUrl
+            };
+            task.updatedAt = new Date().toISOString();
+            updatedTasks.push(task);
+          }
+        });
+      }
+    }
+  } else {
+    // Fuzzy matching by active task title
+    const allTasks = await listTasks();
+    const activeTasks = allTasks.filter((t) => t.status !== 'Done');
+    for (const t of activeTasks) {
+      if (t.title && commitMessage.toLowerCase().includes(t.title.toLowerCase().trim())) {
+        const idToUpdate = t.id || t._id;
+        const updated = await updateTask(idToUpdate, {
+          status: 'Done',
+          commitInfo: {
+            commitHash,
+            commitMessage,
+            author: author || 'developer',
+            committedAt: new Date().toISOString(),
+            repoUrl,
+            commitUrl
+          }
+        });
+        if (updated) updatedTasks.push(updated);
+      }
+    }
+  }
+
+  return updatedTasks;
+}
+
+// Git Commit Handler (Direct from web UI)
 async function handleCommitRequest(req, res) {
   try {
     const { commitMessage, author, branch } = req.body;
@@ -308,22 +399,31 @@ async function handleCommitRequest(req, res) {
       return res.status(400).json({ message: 'Commit message is required' });
     }
 
-    const result = await executeRealGitCommitAndPush({
+    const realResult = await executeRealGitCommitAndPush({
       commitMessage: commitMessage.trim(),
       author: author || req.user?.username || 'developer',
       branch: branch || 'main'
     });
 
-    const statusMsg = result.pushSuccess
-      ? `✓ Commit #${result.commitHash} pushed to GitHub successfully!`
-      : result.pushError
-      ? `Commit #${result.commitHash} created locally, but GitHub push error: ${result.pushError}`
-      : `Commit #${result.commitHash} processed!`;
+    const updatedTasks = await completeTasksViaCommit({
+      commitMessage: commitMessage.trim(),
+      commitHash: realResult.commitHash,
+      author: author || req.user?.username || 'developer',
+      repoUrl: realResult.repoUrl,
+      commitUrl: realResult.commitUrl
+    });
+
+    const statusMsg = realResult.pushSuccess
+      ? `✓ Commit #${realResult.commitHash} pushed to GitHub! ${updatedTasks.length} task(s) completed.`
+      : realResult.pushError
+      ? `Commit #${realResult.commitHash} created locally, but GitHub push error: ${realResult.pushError}`
+      : `Commit #${realResult.commitHash} processed! ${updatedTasks.length} task(s) completed.`;
 
     res.json({
       success: true,
       message: statusMsg,
-      ...result
+      updatedTasks,
+      ...realResult
     });
   } catch (error) {
     console.error('Commit processing error:', error);
@@ -333,6 +433,64 @@ async function handleCommitRequest(req, res) {
 
 app.post('/api/commit', requireAuth, handleCommitRequest);
 app.post('/api/projects/:projectId/commit', requireAuth, handleCommitRequest);
+
+// Local Git Hook Webhook (Invoked automatically by .git/hooks/post-commit on user's machine)
+app.post('/api/webhook/git', async (req, res) => {
+  try {
+    const { commitMessage, commitHash, author } = req.body;
+    if (!commitMessage) {
+      return res.status(400).json({ message: 'commitMessage required' });
+    }
+
+    const repoRoot = findGitRepoRoot(__dirname);
+    let originUrl = '';
+    try {
+      originUrl = execSync('git remote get-url origin', { cwd: repoRoot, encoding: 'utf8' }).trim();
+    } catch {}
+    const cleanRepo = originUrl.replace(/\.git$/, '').replace(/^git@github\.com:/, 'https://github.com/');
+    const commitUrl = cleanRepo && commitHash ? `${cleanRepo}/commit/${commitHash}` : '';
+
+    const updatedTasks = await completeTasksViaCommit({
+      commitMessage,
+      commitHash: commitHash || 'local',
+      author: author || 'developer',
+      repoUrl: cleanRepo,
+      commitUrl
+    });
+
+    console.log(`✓ Webhook: Processed local Git commit "${commitMessage}". Moved ${updatedTasks.length} task(s) to Done.`);
+    res.json({ success: true, updatedTasks, count: updatedTasks.length });
+  } catch (err) {
+    console.error('Git webhook error:', err);
+    res.status(500).json({ message: 'Error processing git webhook' });
+  }
+});
+
+// GitHub Webhook Receiver (Invoked when commits are pushed to GitHub)
+app.post('/api/webhook/github', async (req, res) => {
+  try {
+    const payload = req.body;
+    const commits = payload.commits || (payload.head_commit ? [payload.head_commit] : []);
+    const results = [];
+
+    for (const commit of commits) {
+      const updated = await completeTasksViaCommit({
+        commitMessage: commit.message,
+        commitHash: commit.id ? commit.id.substring(0, 7) : 'github',
+        author: commit.author?.name || commit.author?.username || 'GitHub Committer',
+        repoUrl: payload.repository?.html_url || '',
+        commitUrl: commit.url || ''
+      });
+      results.push(...updated);
+    }
+
+    console.log(`✓ GitHub Webhook: Received ${commits.length} commit(s). Moved ${results.length} task(s) to Done.`);
+    res.json({ success: true, processedCommits: commits.length, updatedTasks: results });
+  } catch (err) {
+    console.error('GitHub webhook error:', err);
+    res.status(500).json({ message: 'Error processing GitHub webhook' });
+  }
+});
 
 app.use((err, _req, res, _next) => {
   console.error(err);

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Column from './Column';
 import TaskModal from './TaskModal';
 import TaskViewModal from './TaskViewModal';
+import GitCommitModal from './GitCommitModal';
 
 const COLUMNS = [
   { id: 'To Do', label: 'To Do', cssClass: 'column-todo', emptyIcon: '📋', emptyText: 'No tasks yet' },
@@ -70,6 +71,7 @@ function TaskBoard() {
   const { tasks, moveTask, loading, error } = useTaskContext();
   const { user, logout } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
+  const [commitModalOpen, setCommitModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [defaultColumn, setDefaultColumn] = useState('To Do');
@@ -138,6 +140,22 @@ function TaskBoard() {
               LOGOUT
             </button>
           </div>
+          <button
+            className="btn btn-secondary"
+            id="git-commit-header-btn"
+            onClick={() => setCommitModalOpen(true)}
+            style={{
+              background: '#10b981',
+              borderColor: '#059669',
+              color: '#ffffff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 'bold'
+            }}
+          >
+            <span>🌿</span> Git Commit &amp; Push
+          </button>
           <button
             className="btn btn-primary"
             id="add-task-header-btn"
@@ -208,6 +226,10 @@ function TaskBoard() {
       {viewingTask && (
         <TaskViewModal task={viewingTask} onClose={() => setViewingTask(null)} />
       )}
+      <GitCommitModal
+        isOpen={commitModalOpen}
+        onClose={() => setCommitModalOpen(false)}
+      />
     </div>
   );
 }

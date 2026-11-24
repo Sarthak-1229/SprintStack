@@ -63,7 +63,16 @@ function TaskViewModal({ task, onClose }) {
             <div style={{ marginBottom: '1.5rem', background: '#f0fdf4', border: '2px solid #86efac', padding: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: '800', color: '#166534', marginBottom: '0.25rem' }}>
                 <GitCommit size={15} />
-                <span>Verified by Commit #{task.commitInfo.commitHash}</span>
+                <span>
+                  Verified by Commit{' '}
+                  {task.commitInfo.commitUrl ? (
+                    <a href={task.commitInfo.commitUrl} target="_blank" rel="noreferrer" style={{ color: '#15803d', textDecoration: 'underline' }}>
+                      #{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'} ↗
+                    </a>
+                  ) : (
+                    `#${task.commitInfo.commitHash}`
+                  )}
+                </span>
               </div>
               <p style={{ fontStyle: 'italic', color: '#1f2937', fontSize: '0.85rem', margin: '0.25rem 0' }}>
                 &ldquo;{task.commitInfo.commitMessage}&rdquo;

@@ -841,6 +841,39 @@ async function processCommit({ projectId, commitHash, commitMessage, author, bra
     }
   }
 
+  // If no task IDs matched, try fuzzy matching active task titles
+  if (matchedTaskIds.length === 0) {
+    const query = { status: { $ne: "Done" } };
+    if (projectId) query.projectId = projectId;
+    const activeTasks = await Task.find(query);
+    for (const t of activeTasks) {
+      if (t.title && commitMessage.toLowerCase().includes(t.title.toLowerCase().trim())) {
+        t.status = "Done";
+        t.commitInfo = {
+          commitHash: shortHash,
+          commitMessage,
+          author: author || "Developer",
+          committedAt: new Date(),
+          repoUrl: finalRepoUrl,
+          commitUrl
+        };
+        await t.save();
+        const taskObj = t.toJSON();
+        updatedTasks.push(taskObj);
+
+        io.to(`project:${t.projectId.toString()}`).emit("task:updated", taskObj);
+        io.to(`project:${t.projectId.toString()}`).emit("task:completed_by_commit", {
+          task: taskObj,
+          commitHash: shortHash,
+          commitMessage,
+          author,
+          commitUrl,
+          pushedToGitHub
+        });
+      }
+    }
+  }
+
   // Create commit log entry
   let commitLogDoc = null;
   if (projectId) {
@@ -950,6 +983,35 @@ app.post("/api/projects/:projectId/webhook", async (req, res) => {
   } catch (error) {
     console.error("GitHub webhook error:", error);
     res.status(500).json({ message: "Server error processing webhook" });
+  }
+});
+
+// Local Git Hook Webhook (Invoked automatically by .git/hooks/post-commit on user machine)
+app.post("/api/webhook/git", async (req, res) => {
+  try {
+    const { commitMessage, commitHash, author, branch } = req.body;
+    if (!commitMessage) {
+      return res.status(400).json({ message: "commitMessage is required" });
+    }
+
+    const defaultProject = await Project.findOne();
+    const projectId = defaultProject ? defaultProject._id : null;
+
+    const result = await processCommit({
+      projectId,
+      commitHash: commitHash || crypto.randomBytes(4).toString("hex"),
+      commitMessage: commitMessage.trim(),
+      author: author || "Local Git Committer",
+      branch: branch || "main",
+      repoUrl: defaultProject?.githubRepo || "",
+      source: "webhook"
+    });
+
+    console.log(`✓ Webhook: Processed local Git commit "${commitMessage}". Moved ${result.updatedTasks.length} task(s) to Done.`);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error("Local Git webhook error:", err);
+    res.status(500).json({ message: "Error processing local git webhook" });
   }
 });
 

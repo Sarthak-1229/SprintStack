@@ -33,5 +33,14 @@ export const TaskProvider = ({ children }) => {
   const moveTask = async (id, status) => { await request(`/api/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); await refreshTasks(); };
   const deleteTask = async (id) => { await request(`/api/tasks/${id}`, { method: 'DELETE' }); await refreshTasks(); };
 
-  return <TaskContext.Provider value={{ tasks, loading, error, refreshTasks, createTask, updateTask, moveTask, deleteTask }}>{children}</TaskContext.Provider>;
+  const dispatchCommit = async ({ commitMessage, author, branch }) => {
+    const result = await request('/api/commit', {
+      method: 'POST',
+      body: JSON.stringify({ commitMessage, author, branch }),
+    });
+    await refreshTasks();
+    return result;
+  };
+
+  return <TaskContext.Provider value={{ tasks, loading, error, refreshTasks, createTask, updateTask, moveTask, deleteTask, dispatchCommit }}>{children}</TaskContext.Provider>;
 };

@@ -214,7 +214,20 @@ function TaskCard({ task, index, onEdit, onView }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: '800', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                   <GitCommit size={12} />
-                  <span>#{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'}</span>
+                  {task.commitInfo.commitUrl ? (
+                    <a
+                      href={task.commitInfo.commitUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ color: '#15803d', textDecoration: 'underline', fontWeight: 800 }}
+                      title="View commit on GitHub"
+                    >
+                      #{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'} ↗
+                    </a>
+                  ) : (
+                    <span>#{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'}</span>
+                  )}
                 </span>
                 <span style={{ color: '#4b5563', fontSize: '0.68rem' }}>
                   by @{task.commitInfo.author || 'committer'}

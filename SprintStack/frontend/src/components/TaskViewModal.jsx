@@ -26,13 +26,43 @@ function TaskViewModal({ task, onClose }) {
         </div>
 
         <div className="task-view-content" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <span className="category-badge" style={{ background: 'var(--accent-black, #1D1D1D)', color: '#ffffff', fontFamily: 'monospace', fontWeight: 'bold' }}>
+              {task.taskId || 'TASK'}
+            </span>
             <span className={`priority-badge ${task.priority}`}>{task.priority} Priority</span>
             <span className="category-badge">{task.category}</span>
             <span className="category-badge" style={{ background: 'var(--bg-color)', color: 'var(--text-color)' }}>
               Status: <strong>{task.status}</strong>
             </span>
           </div>
+
+          {/* Commit Info if Done */}
+          {task.status === 'Done' && task.commitInfo && (
+            <div style={{ marginBottom: '1.5rem', background: '#f0fdf4', border: '2px solid #86efac', padding: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: '800', color: '#166534', marginBottom: '0.25rem' }}>
+                <span>🌿</span>
+                <span>
+                  Verified by Git Commit{' '}
+                  {task.commitInfo.commitUrl ? (
+                    <a href={task.commitInfo.commitUrl} target="_blank" rel="noreferrer" style={{ color: '#15803d', textDecoration: 'underline' }}>
+                      #{task.commitInfo.commitHash ? task.commitInfo.commitHash.substring(0, 7) : 'commit'} ↗
+                    </a>
+                  ) : (
+                    `#${task.commitInfo.commitHash}`
+                  )}
+                </span>
+              </div>
+              {task.commitInfo.commitMessage && (
+                <p style={{ fontStyle: 'italic', color: '#1f2937', fontSize: '0.85rem', margin: '0.25rem 0' }}>
+                  &ldquo;{task.commitInfo.commitMessage}&rdquo;
+                </p>
+              )}
+              <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
+                Author: @{task.commitInfo.author || 'committer'} &bull; {task.commitInfo.committedAt ? new Date(task.commitInfo.committedAt).toLocaleString() : ''}
+              </span>
+            </div>
+          )}
 
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', fontSize: '0.8rem' }}>Description</h4>

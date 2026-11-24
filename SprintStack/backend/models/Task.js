@@ -7,6 +7,11 @@ const taskSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    taskId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
     description: {
       type: String,
       default: "",
@@ -41,6 +46,14 @@ const taskSchema = new mongoose.Schema(
     assignee: {
       type: String,
       default: null,
+    },
+    commitInfo: {
+      commitHash: { type: String, default: null },
+      commitMessage: { type: String, default: null },
+      author: { type: String, default: null },
+      committedAt: { type: Date, default: null },
+      repoUrl: { type: String, default: null },
+      commitUrl: { type: String, default: null },
     },
   },
   {
